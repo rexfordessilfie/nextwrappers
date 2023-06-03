@@ -1,0 +1,39 @@
+{
+  "name": "next-route-handler-wrappers",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "license": "MIT",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:watch": "tsc -p tsconfig.json -w",
+    "test": "ava"
+  },
+  "keywords": [
+    "next",
+    "route",
+    "handler",
+    "wrapper",
+    "middleware",
+    "api"
+  ],
+  "author": "Rexford Essilfie <rexfordessilfie09@gmail.com>",
+  "ava": {
+    "extensions": {
+      "ts": "module"
+    },
+    "nodeArguments": [
+      "--loader=ts-node/esm"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^20.2.5",
+    "ava": "^5.3.0",
+    "node-mocks-http": "^1.12.2",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.3"
+  }
+}

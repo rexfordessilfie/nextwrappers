@@ -1,7 +1,7 @@
-# next-route-handler-wrappers 🎁
-Reusable, composable middleware for Next.js App Router [Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/router-handlers) and [Middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware).
+# next-route-handler-wrappers
+Reusable, composable middleware-like wrappers for Next.js App Router [Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/router-handlers) and [Middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware).
 
-# Instructions 🚀
+## Get Started 🚀
 1. First install the library using your favorite package manager:
 
     **Using NPM**
@@ -61,9 +61,7 @@ This lets you create a wrapper around a route/middleware handler that performs s
 It gives you access to the route handler's `request`, an `ext` object containing path parameters, and a `next` function for executing the wrapped route handler.
 
 
-### Examples 
-
-**`authenticated` wrapper**:
+### Example - `authenticated()`
 Ensure a user has been authenticated with next-auth before continuing with request, then attach current user to the request.
 ```ts
 import { getServerSession } from "next-auth/react";
@@ -87,7 +85,7 @@ export const authenticated = wrapper(
 );
 ```
 
-**`restrictedTo` wrapper**:
+### Example - `restrictedTo()`
 Ensure that a user has the right role to access the API route.
 ```ts
 import { wrapper, InferReq } from "next-route-handler-wrappers";
@@ -103,6 +101,7 @@ const ROLES = {
 } as const;
 
 type Role = (typeof ROLES)[keyof typeof ROLES];
+
 const ROLE_LEVELS: Record<Role, number> = {
   guest: 0,
   user: 1,
@@ -110,13 +109,12 @@ const ROLE_LEVELS: Record<Role, number> = {
   superAdmin: 3
 };
 
-export const restrictedTo = <R extends Role>(role: R) =>
-  wrapper(async (request: InferReq<typeof authenticated>, _, next) => {
+export function restrictedTo<R extends Role>(role: R) {
+  const allowedLevel = ROLE_LEVELS[role];
 
-    const currentUserLevel = ROLE_LEVELS[request.user.role ?? ROLES.guest];
-    const requiredLevel = ROLE_LEVELS[role];
-
-    if (currentUserLevel < requiredLevel) {
+  return wrapper(async (request: InferReq<typeof authenticated>, _, next) => {
+    const userLevel = ROLE_LEVELS[request.user.role ?? ROLES.guest];
+    if (userLevel < allowedLevel) {
       return NextResponse.json(
         { message: "Unauthorized operation!" },
         { status: 403 }
@@ -125,6 +123,7 @@ export const restrictedTo = <R extends Role>(role: R) =>
 
     return next();
   });
+}
 ```
 
 ## `stack()` / `stackM()`
@@ -218,7 +217,8 @@ function withMatched<Req extends Request, Res extends Response | void>(
 }
 ```
 
-### Usage - Middleware Logging:
+**Usage - Middleware Logging (on Matching Paths)**
+
 We can define a basic middleware that only logs a greeting for requests that match a certain path.
 ```ts
 // middleware.ts
@@ -240,8 +240,9 @@ export const middleware = withMatchedGreeting(() => {
 });
 ```
 
-### Usage - Middleware Authentication
-Or we can define an authentication middleware that only applies to certain paths using NextAuth.js' `withAuth` middleware.
+### `withMatchedAuthenticated()`
+
+Or we can define an authentication middleware that only applies to matching paths using NextAuth.js' `withAuth` middleware.
 
 ```ts
 // middleware.ts
@@ -251,7 +252,7 @@ import withAuth, {
 } from "next-auth/middleware";
 import { withMatched } from "lib/wrappers";
 
-function withMatchedAuth(
+function withMatchedAuthenticated(
   config?: MatchConfig,
   authOptions?: NextAuthMiddlewareOptions
 ) {
@@ -260,27 +261,29 @@ function withMatchedAuth(
     withAuth(next, authOptions ?? {})(req)
   );
 }
+```
 
-const authMatchConfig: MatchConfig = {
+**Usage**
+```ts
+// middleware.ts
+import { withMatchedAuthenticated } from "lib/wrappers";
+
+const withAuthentication = withMatchedAuthenticated({
   paths: [/^\/dashboard.*$/],
-};
-
-const authOptions: NextAuthMiddlewareOptions = {
+}, {
   pages: {
     signIn: "/signin",
   },
-};
+});
 
-const withAuthentication = withMatchedAuth(authMatchConfig, authOptions);
-
-export const middleware = withMatchedAuth(() => {
+export const middleware = withMatchedAuthenticated(() => {
   return NextResponse.next();
 });
 ```
 
 > NB: The above example will only invoke the `withAuth` middleware if the request matches the given paths. See the next section for a complex example that always invokes the `withAuth` middleware, but only redirects if the request matches the given paths.
 
-## `withProtected`
+### `withMatchedProtected()`
 If you always want to invoke the `withAuth` middleware, (for example, to set the `req.nextauth.token`) property regardless of the request path - but still redirect if the path is 'protected', you can define a custom wrapper with `wrapperM` and override `withAuth`'s redirect logic through its `authorized` callback option.
 
 For example here we show a more complex example with multiple levels of protected paths (regular protected paths and admin-protected paths):
@@ -296,7 +299,7 @@ type MatchConfig = {
   adminPaths?: RegExp[];
 };
 
-function withProtectedMatchConfig(config: MatchConfig = { paths: [], adminPaths: [] }) {
+function withMatchedProtected(config: MatchConfig = { paths: [], adminPaths: [] }) {
   const { paths, adminPaths } = config;
   const pathsRegex = paths
     ? new RegExp(paths.map((r) => r.source).join("|"))
@@ -337,17 +340,15 @@ function withProtectedMatchConfig(config: MatchConfig = { paths: [], adminPaths:
 
 The above callback logic is adapted from NextAuth.js docs [here](https://next-auth.js.org/configuration/nextjs#advanced-usage).
 
-### Usage
+**Usage**
 ```ts
 // middleware.ts
-import { withProtectedMatchConfig, MatchConfig } from "lib/wrappers";
+import { withMatchedProtected } from "lib/wrappers";
 
-const protectedMatchConfig: MatchConfig = {
+const withProtected = withMatchedProtected({
   paths: [/^\/dashboard.*$/],
   adminPaths: [/^\/admin.*$/],
-};
-
-const withProtected = withProtectedMatchConfig(protectedMatchConfig);
+};);
 
 export const middleware = withProtected(() => {
   return NextResponse.next();
@@ -405,7 +406,6 @@ const logged = wrapper(async (request: NextRequest, { params }, next) => {
 });
 ```
 
-### Usage
 ```ts
 // app/api/user/[id]/route.ts
 import { logged } from "lib/wrappers";
@@ -439,8 +439,7 @@ export const dbConnected = wrapper(
   }
 );
 ```
-
-### Usage
+**Usage**
 
 ```ts
 // app/api/user/[id]/route.ts
@@ -505,7 +504,7 @@ export function validated<B extends z.Schema, Q extends z.Schema>(schemas: {
 }
 ```
 
-### Usage
+**Usage**
 
 ```ts
 //app/api/user/[id]/route.ts
@@ -550,6 +549,7 @@ const wrappedPost = wrapped
   .with(restrictedToUser)
   .with(
     wrapper(async (next, request, { params }: { params: { id: string } }) => {
+      // Restricting to the user's own ID
       if (request.user.id !== params.id) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
       }
@@ -619,6 +619,28 @@ const handler = logged(
 );
 
 export { handler as GET, handler as POST };
+```
+
+
+## With [Uploadthing](https://uploadthing.com/)
+Adapted from [here](https://docs.uploadthing.com/nextjs/appdir#create-a-nextjs-api-route-using-the-filerouter)
+
+```ts
+/** app/api/uploadthing/route.ts */
+
+import { createNextRouteHandler } from "uploadthing/next";
+import { logged } from "lib/wrappers";
+ 
+import { ourFileRouter } from "./core";
+ 
+ // Get route handlers for Next App Router
+const { GET: _GET, POST: _POST } = createNextRouteHandler({
+  router: ourFileRouter,
+});
+
+// Wrap and export routes for Next App Router
+export const GET = logged(_GET);
+export const POST = logged(_POST);
 ```
 
 # Acknowledgements

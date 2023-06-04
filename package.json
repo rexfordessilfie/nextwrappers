@@ -11,7 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -p tsconfig.json -w",
     "test": "ava",
-    "prepublish": "rm -rf dist && npm run build"
+    "prepublishOnly": "rm -rf dist && npm run build"
   },
   "keywords": [
     "next",

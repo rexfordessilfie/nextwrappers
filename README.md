@@ -240,7 +240,7 @@ export const middleware = withMatchedGreeting(() => {
 });
 ```
 
-### Usage - Middleware Authentication (only on Matching Paths) 
+### Usage - Middleware Authentication
 Or we can define an authentication middleware that only applies to certain paths using NextAuth.js' `withAuth` middleware.
 
 ```ts
@@ -278,16 +278,14 @@ export const middleware = withMatchedAuth(() => {
 });
 ```
 
-> NB: The above example will only invoke the `withAuth` middleware if the request matches the given paths.
+> NB: The above example will only invoke the `withAuth` middleware if the request matches the given paths. See the next section for a complex example that always invokes the `withAuth` middleware, but only redirects if the request matches the given paths.
 
-### Usage - Middleware Authentication (w/ Custom Redirects)
+## `withProtected`
 If you always want to invoke the `withAuth` middleware, (for example, to set the `req.nextauth.token`) property regardless of the request path - but still redirect if the path is 'protected', you can define a custom wrapper with `wrapperM` and override `withAuth`'s redirect logic through its `authorized` callback option.
 
 For example here we show a more complex example with multiple levels of protected paths (regular protected paths and admin-protected paths):
 
 ```ts
-// middleware.ts
-
 import withAuth, {
   NextAuthMiddlewareOptions,
   NextRequestWithAuth
@@ -311,8 +309,6 @@ function withProtectedMatchConfig(config: MatchConfig = { paths: [], adminPaths:
   const authOptions: NextAuthMiddlewareOptions = {
     callbacks: {
       authorized({ token, req }) {
-        // Side note: up here, can add other logic to check for example that the user is an admin before letting through
-        // for certain paths.
         const isAdminPath = adminPathsRegex.test(new URL(req.url).pathname);
         if (isAdminPath) {
           // Admin path, so allow only if token is present and user is admin
@@ -337,6 +333,14 @@ function withProtectedMatchConfig(config: MatchConfig = { paths: [], adminPaths:
     withAuth(next, authOptions)(req)
   );
 }
+```
+
+The above callback logic is adapted from NextAuth.js docs [here](https://next-auth.js.org/configuration/nextjs#advanced-usage).
+
+### Usage
+```ts
+// middleware.ts
+import { withProtectedMatchConfig, MatchConfig } from "lib/wrappers";
 
 const protectedMatchConfig: MatchConfig = {
   paths: [/^\/dashboard.*$/],
@@ -349,8 +353,6 @@ export const middleware = withProtected(() => {
   return NextResponse.next();
 });
 ```
-
-The above callback logic is adapted from NextAuth.js docs [here](https://next-auth.js.org/configuration/nextjs#advanced-usage).
 
 ## Logging x Error Handling
 For logging and handling errors at the route handler level, we can use a `logged` wrapper. This one uses the [`pino`](https://getpino.io/#/) logger, but you can use any logger you want.
@@ -573,7 +575,7 @@ export const POST = wrappedPost(async function (
 });
 ```
 
-
+# Using 3rd-Party Route Handlers
 ## With [tRPC](https://trpc.io)
 Adapted from [here](https://trpc.io/docs/server/adapters/nextjs#route-handlers)
 ```ts

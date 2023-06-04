@@ -620,5 +620,27 @@ const handler = logged(
 export { handler as GET, handler as POST };
 ```
 
+
+### With [Uploadthing](https://uploadthing.com/)
+Adapted from [here](https://docs.uploadthing.com/nextjs/appdir#create-a-nextjs-api-route-using-the-filerouter)
+
+```ts
+/** app/api/uploadthing/route.ts */
+
+import { createNextRouteHandler } from "uploadthing/next";
+import { logged } from "lib/wrappers";
+ 
+import { ourFileRouter } from "./core";
+ 
+ // Get route handlers for Next App Router
+const { GET: _GET, POST: _POST } = createNextRouteHandler({
+  router: ourFileRouter,
+});
+
+// Wrap and export routes for Next App Router
+export const GET = logged(_GET);
+export const POST = logged(_POST);
+```
+
 # Acknowledgements
 This project builds on top of patterns from [`nextjs-handler-middleware`](https://github.com/rexfordessilfie/nextjs-handler-middleware).

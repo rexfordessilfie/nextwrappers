@@ -1,22 +1,22 @@
-# next-route-handler-wrappers 🎁
-Reusable, composable middleware for Next.js App Router [Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/router-handlers).
+# next-route-wrappers 🎁
+Reusable, composable middleware for Next.js App Router [Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/router-handlers) and [Middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware).
 
 # Instructions 🚀
 1. First install the library using your favorite package manager:
 
     **Using NPM**
     ```bash
-    npm install next-route-handler-wrappers
+    npm install next-route-wrappers
     ```
     **Using Yarn**
     ```bash
-    yarn add next-route-handler-wrappers
+    yarn add next-route-wrappers
     ```
 2. Next, define a wrapper function with `wrapper`, as follows:
 
     ```ts
     // lib/wrappers/traced-wrapper.ts
-    import { wrapper } from "next-route-handler-wrappers";
+    import { wrapper } from "next-route-wrappers";
     import { NextRequest } from "next/server";
 
     export const traced = wrapper(
@@ -71,7 +71,7 @@ import { Session } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "app/api/auth/[...nextauth]/route.ts";
 
-import { wrapper } from "next-route-handler-wrappers";
+import { wrapper } from "next-route-wrappers";
 
 export const authenticated = wrapper(
   async (request: NextRequest & { user: Session["user"] }, ext, next) => {
@@ -90,7 +90,7 @@ export const authenticated = wrapper(
 **`restrictedTo` wrapper**:
 Ensure that a user has the right role to access the API route.
 ```ts
-import { wrapper, InferReq } from "next-route-handler-wrappers";
+import { wrapper, InferReq } from "next-route-wrappers";
 import { NextResponse } from "next/server";
 
 import { authenticated } from "lib/auth-wrapper";
@@ -133,7 +133,7 @@ This lets you combine multiple wrappers to be applied within the same request. T
 Building from the example above, we can combine `restrictedTo` and `authenticated` wrappers to restrict a route to authenticated users with a particular role. 
 
 ```ts
-import { stack } from "next-route-handler-wrappers";
+import { stack } from "next-route-wrappers";
 import { authenticated, restrictedTo } from "lib/wrappers";
 
 const restrictedToUser = stack(authenticated).with(restrictedTo("user"));
@@ -148,7 +148,7 @@ This also lets us combine wrappers similarly to `stack`, except that the wrapper
 
 Building from the previous example, we can express the above wrappers with `chain` as:
 ```ts
-import { chain } from "next-route-handler-wrappers";
+import { chain } from "next-route-wrappers";
 import { authenticated, restrictedTo } from "lib/wrappers";
 
 const restrictedToUser = chain(restrictedTo("user")).with(authenticated);
@@ -165,7 +165,7 @@ Both `stack` and `chain` are built on top of `merge`!
 
 Again, we can express the above wrapper as:
 ```ts
-import { merge } from "next-route-handler-wrappers";
+import { merge } from "next-route-wrappers";
 import { authenticated, restrictedTo } from "lib/wrappers";
 
 const restrictedToUser = merge(authenticated, restrictedTo("user"));
@@ -175,20 +175,20 @@ const restrictedToSuperAdmin = merge(authenticated, restrictedTo("superAdmin"));
 
 > The `stack` and `chain` have a `.with()` for endless wrapper combination, but `merge` does not. However, since the result of `merge` is a wrapper, we can combine multiple `merge` calls to achieve the same effect:
 ```ts
-import { merge } from "next-route-handler-wrappers"
+import { merge } from "next-route-wrappers"
 import { w1, w2, w3, w4 } from "lib/wrappers"
 
 const superWrapper = merge(merge(merge(w1, w2), w3), w4);
 ```
 
 # Use-Cases 📝
-Here are some common ideas and use-cases for `next-route-handler-wrappers`:
+Here are some common ideas and use-cases for `next-route-wrappers`:
 
 ## Matching Paths in `middleware.ts`
 We can define a `withMatched` wrapper that selectively applies a middleware logic based on the request path, building on top of Next.js' ["Matching Paths"](https://nextjs.org/docs/app/building-your-application/routing/middleware#matching-paths) documentation.
 ### `withMatched()`
 ```ts
-import { wrapperM, MiddlewareWrapperCallback } from "next-route-handler-wrappers";
+import { wrapperM, MiddlewareWrapperCallback } from "next-route-wrappers";
 
 type MatchConfig = {
   paths?: RegExp[];
@@ -283,7 +283,7 @@ For logging and handling errors at the route handler level, we can use a `logged
 
 ### `logged()`
 ```ts
-import { wrapper } from "next-route-handler-wrappers";
+import { wrapper } from "next-route-wrappers";
 import { NextRequest, NextResponse } from "next/server";
 import pino from "pino";
 
@@ -345,7 +345,7 @@ export const GET = logged((request, { params }) => {
 We can perform validation of any parts of the request, including the body, query, or even path parameters. We can use the [`zod`](https://zod.dev) validator for this, and then attach the parsed values to the request object.
 ### `validated()`
 ```ts
-import { wrapper } from "next-route-handler-wrappers";
+import { wrapper } from "next-route-wrappers";
 import { z } from "zod";
 import { NextRequest } from "next/server";
 
@@ -392,7 +392,7 @@ export function validated<B extends z.Schema, Q extends z.Schema>(schemas: {
 
 ```ts
 //app/api/user/[id]/route.ts
-import { stack, wrapper } from "next-route-handler-wrappers";
+import { stack, wrapper } from "next-route-wrappers";
 import { userUpdateSchema } from "lib/schemas";
 import {
   authenticated,
@@ -464,7 +464,7 @@ We can use the `dbConnected` wrapper to ensure that we have a connection ready b
 ### `dbConnected()`
 ```ts
 import { NextRequest } from "next/server";
-import { wrapper } from "next-route-handler-wrappers";
+import { wrapper } from "next-route-wrappers";
 import * as models from "lib/models";
 
 import { dbConnect } from "lib/dbConnect"; // Source: https://github.com/vercel/next.js/blob/canary/examples/with-mongodb-mongoose/lib/dbConnect.js

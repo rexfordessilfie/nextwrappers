@@ -1,5 +1,5 @@
 {
-  "name": "next-route-handler-wrappers",
+  "name": "next-route-wrappers",
   "version": "1.0.0",
   "main": "dist/index.js",
   "license": "MIT",
@@ -10,7 +10,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -p tsconfig.json -w",
-    "test": "ava"
+    "test": "ava",
+    "prepublish": "rm -rf dist && npm run build"
   },
   "keywords": [
     "next",

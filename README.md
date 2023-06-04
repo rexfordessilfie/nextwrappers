@@ -1,5 +1,5 @@
-# next-route-handler-wrappers 🎁
-Reusable, composable middleware for Next.js App Router [Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/router-handlers) and [Middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware).
+# next-route-handler-wrappers
+Reusable, composable middleware-like wrappers for Next.js App Router [Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/router-handlers) and [Middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware).
 
 ## Get Started 🚀
 1. First install the library using your favorite package manager:

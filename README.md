@@ -597,7 +597,7 @@ const handler = logged((req) =>
 export { handler as GET, handler as POST };
 ```
 
-### With [NextAuth](https://next-auth.js.org/getting-started/example)
+## With [NextAuth](https://next-auth.js.org/getting-started/example)
 Adapted from [here](https://next-auth.js.org/configuration/initialization#route-handlers-app)
 
 ```ts

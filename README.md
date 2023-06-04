@@ -622,7 +622,7 @@ export { handler as GET, handler as POST };
 ```
 
 
-### With [Uploadthing](https://uploadthing.com/)
+## With [Uploadthing](https://uploadthing.com/)
 Adapted from [here](https://docs.uploadthing.com/nextjs/appdir#create-a-nextjs-api-route-using-the-filerouter)
 
 ```ts

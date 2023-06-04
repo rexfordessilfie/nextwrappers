@@ -1,16 +1,19 @@
 {
   "name": "next-route-handler-wrappers",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "main": "dist/index.js",
   "license": "MIT",
   "types": "dist/index.d.ts",
+  "author": "Rexford Essilfie <rexfordessilfie09@gmail.com>",
+  "repository": "https://github.com/rexfordessilfie/next-route-handler-wrappers",
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -p tsconfig.json -w",
-    "test": "ava"
+    "test": "ava",
+    "prepublishOnly": "rm -rf dist && npm run build"
   },
   "keywords": [
     "next",
@@ -20,7 +23,6 @@
     "middleware",
     "api"
   ],
-  "author": "Rexford Essilfie <rexfordessilfie09@gmail.com>",
   "ava": {
     "extensions": {
       "ts": "module"

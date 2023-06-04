@@ -101,6 +101,7 @@ const ROLES = {
 } as const;
 
 type Role = (typeof ROLES)[keyof typeof ROLES];
+
 const ROLE_LEVELS: Record<Role, number> = {
   guest: 0,
   user: 1,
@@ -108,13 +109,12 @@ const ROLE_LEVELS: Record<Role, number> = {
   superAdmin: 3
 };
 
-export const restrictedTo = <R extends Role>(role: R) =>
-  wrapper(async (request: InferReq<typeof authenticated>, _, next) => {
+export function restrictedTo<R extends Role>(role: R) {
+  const allowedLevel = ROLE_LEVELS[role];
 
-    const currentUserLevel = ROLE_LEVELS[request.user.role ?? ROLES.guest];
-    const requiredLevel = ROLE_LEVELS[role];
-
-    if (currentUserLevel < requiredLevel) {
+  return wrapper(async (request: InferReq<typeof authenticated>, _, next) => {
+    const userLevel = ROLE_LEVELS[request.user.role ?? ROLES.guest];
+    if (userLevel < allowedLevel) {
       return NextResponse.json(
         { message: "Unauthorized operation!" },
         { status: 403 }
@@ -123,6 +123,7 @@ export const restrictedTo = <R extends Role>(role: R) =>
 
     return next();
   });
+}
 ```
 
 ## `stack()` / `stackM()`

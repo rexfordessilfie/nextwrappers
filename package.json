@@ -1,6 +1,6 @@
 {
-  "name": "next-route-wrappers",
-  "version": "1.0.0",
+  "name": "next-route-handler-wrappers",
+  "version": "1.1.0",
   "main": "dist/index.js",
   "license": "MIT",
   "types": "dist/index.d.ts",

@@ -61,9 +61,7 @@ This lets you create a wrapper around a route/middleware handler that performs s
 It gives you access to the route handler's `request`, an `ext` object containing path parameters, and a `next` function for executing the wrapped route handler.
 
 
-### Examples 
-
-**`authenticated` wrapper**:
+### Example - `authenticated()`
 Ensure a user has been authenticated with next-auth before continuing with request, then attach current user to the request.
 ```ts
 import { getServerSession } from "next-auth/react";
@@ -87,7 +85,7 @@ export const authenticated = wrapper(
 );
 ```
 
-**`restrictedTo` wrapper**:
+### Example - `restrictedTo()`
 Ensure that a user has the right role to access the API route.
 ```ts
 import { wrapper, InferReq } from "next-route-handler-wrappers";

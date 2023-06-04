@@ -1,7 +1,7 @@
 # next-route-handler-wrappers 🎁
 Reusable, composable middleware for Next.js App Router [Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/router-handlers).
 
-# Instructions 🚀
+## Instructions 🚀
 1. First install the library using your favorite package manager:
 
     **Using NPM**
@@ -53,8 +53,8 @@ Reusable, composable middleware for Next.js App Router [Route Handlers](https://
     });
     ```
 
-# Features ✨
-## `wrapper()`
+## Features ✨
+### `wrapper()`
 This lets you create a wrapper around a route handler that performs some arbitrary piece of logic. 
 
 It gives you access to the route handler's `request`, an `ext` object containing path parameters, and a `next` function for executing the wrapped route handler.
@@ -122,7 +122,7 @@ export const restrictedTo = <R extends Role>(role: R) =>
   });
 ```
 
-## `stack()` 
+### `stack()` 
 This lets you combine multiple wrappers to be applied within the same request. The wrappers are executed with the *last* wrapper being wrapped closest to the route handler.
 
 Building from the example above, we can combine `restrictedTo` and `authenticated` wrappers to restrict a route to authenticated users with a particular role. 
@@ -138,7 +138,7 @@ const restrictedToSuperAdmin = stack(authenticated).with(
 );
 ```
   
-## `chain()`
+### `chain()`
 This also lets us combine wrappers similarly to `stack`, except that the wrappers are executed with the *first* wrapper being wrapped closest to the route handler.
 
 Building from the previous example, we can express the above wrappers with `chain` as:
@@ -153,7 +153,7 @@ const restrictedToSuperAdmin = chain(restrictedTo("admin")).with(authenticated);
   
 In general, `stack` is more ergonomic since we add onto the back, versus at the front with `chain`.
   
-## `merge()`
+### `merge()`
 This is the most primitive way to combine multiple wrappers. It takes in two wrapper and combines them into one. The second wrapper is wrapped closest to the route handler.
 
 Both `stack` and `chain` are built on top of `merge`!
@@ -176,11 +176,10 @@ import { w1, w2, w3, w4 } from "lib/wrappers"
 const superWrapper = merge(merge(merge(w1, w2), w3), w4);
 ```
 
-# Use-Cases 📝
+## Use-Cases 📝
 Here are some common ideas and use-cases for `next-route-handler-wrappers`:
 
-## Logging x Error Handling
-### `logged()`
+### Logging x Error Handling - `logged()`
 ```ts
 import { wrapper } from "next-route-handler-wrappers";
 import { NextRequest, NextResponse } from "next/server";
@@ -228,7 +227,6 @@ const logged = wrapper(async (request: NextRequest, { params }, next) => {
 });
 ```
 
-### Usage
 ```ts
 // app/api/user/[id]/route.ts
 import { logged } from "lib/wrappers";
@@ -240,8 +238,7 @@ export const GET = logged((request, { params }) => {
 });
 ```
 
-## DB Connections (Mongoose)
-### `dbConnected()`
+### DB Connections (Mongoose) - `dbConnected()`
 ```ts
 import { NextRequest } from "next/server";
 import { wrapper } from "next-route-handler-wrappers";
@@ -262,8 +259,6 @@ export const dbConnected = wrapper(
 );
 ```
 
-### Usage
-
 ```ts
 // app/api/user/[id]/route.ts
 import { dbConnected } from "lib/wrappers";
@@ -279,8 +274,7 @@ export const GET = dbConnected(
 );
 ```
 
-## Request Validation
-### `validated()`
+### Request Validation - `validated()`
 ```ts
 import { wrapper } from "next-route-handler-wrappers";
 import { z } from "zod";
@@ -324,8 +318,6 @@ export function validated<B extends z.Schema, Q extends z.Schema>(schemas: {
   );
 }
 ```
-
-### Usage
 
 ```ts
 //app/api/user/[id]/route.ts
@@ -396,7 +388,7 @@ export const POST = wrappedPost(async function (
 ```
 
 
-## With [tRPC](https://trpc.io)
+### With [tRPC](https://trpc.io)
 Adapted from [here](https://trpc.io/docs/server/adapters/nextjs#route-handlers)
 ```ts
 // app/api/trpc/[trpc]/route.ts
@@ -418,7 +410,7 @@ const handler = logged((req) =>
 export { handler as GET, handler as POST };
 ```
 
-## With [NextAuth](https://next-auth.js.org/getting-started/example)
+### With [NextAuth](https://next-auth.js.org/getting-started/example)
 Adapted from [here](https://next-auth.js.org/configuration/initialization#route-handlers-app)
 
 ```ts
@@ -441,5 +433,5 @@ const handler = logged(
 export { handler as GET, handler as POST };
 ```
 
-# Acknowledgements
+## Acknowledgements
 This project builds on top of patterns from [`nextjs-handler-middleware`](https://github.com/rexfordessilfie/nextjs-handler-middleware).

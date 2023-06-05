@@ -20,7 +20,7 @@ Reusable, composable middleware-like wrappers for Next.js App Router [Route Hand
     import { NextRequest } from "next/server";
 
     export const traced = wrapper(
-      async (request: NextRequest & { traceId: string }, ext, next) => {
+      async (next, request: NextRequest & { traceId: string }) => {
         // Do something before fulfilling request...(e.g connect to your database, add a tracer id to the request, etc.)
 
         // Attach any extra properties you want to the request
@@ -72,7 +72,7 @@ import { authOptions } from "app/api/auth/[...nextauth]/route.ts";
 import { wrapper } from "next-route-handler-wrappers";
 
 export const authenticated = wrapper(
-  async (request: NextRequest & { user: Session["user"] }, ext, next) => {
+  async (next, request: NextRequest & { user: Session["user"] }) => {
     const { user } = await getServerSession(authOptions);
 
     if (!user) {
@@ -112,7 +112,7 @@ const ROLE_LEVELS: Record<Role, number> = {
 export function restrictedTo<R extends Role>(role: R) {
   const allowedLevel = ROLE_LEVELS[role];
 
-  return wrapper(async (request: InferReq<typeof authenticated>, _, next) => {
+  return wrapper(async (next, request: InferReq<typeof authenticated>) => {
     const userLevel = ROLE_LEVELS[request.user.role ?? ROLES.guest];
     if (userLevel < allowedLevel) {
       return NextResponse.json(
@@ -366,7 +366,7 @@ import pino from "pino";
 
 const logger = pino();
 
-const logged = wrapper(async (request: NextRequest, { params }, next) => {
+const logged = wrapper(async (next, request: NextRequest, { params }) => {
   const start = Date.now();
   const { pathname, href } = request.nextUrl;
   const referrer = request.referrer;
@@ -430,9 +430,8 @@ import { dbConnect } from "lib/dbConnect"; // Source: https://github.com/vercel/
 
 export const dbConnected = wrapper(
   async (
-    request: NextRequest & { dbConnected: Promise<void> },
-    ext,
-    next
+    next,
+    request: NextRequest & { dbConnected: Promise<void> }
   ) => {
     request.dbConnected = dbConnect();
     return next();

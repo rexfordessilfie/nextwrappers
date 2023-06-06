@@ -184,14 +184,10 @@ const superWrapper = merge(merge(merge(w1, w2), w3), w4);
 Here are some common ideas and use-cases for `next-route-handler-wrappers`:
 
 ## Matching Paths in `middleware.ts`
-We can define a `withMatched` wrapper that selectively applies a middleware logic based on the request path, building on top of Next.js' ["Matching Paths"](https://nextjs.org/docs/app/building-your-application/routing/middleware#matching-paths) documentation.
-### `withMatched()`
+We can define a `withMatcher` wrapper that selectively applies a middleware logic based on the request path, building on top of Next.js' ["Matching Paths"](https://nextjs.org/docs/app/building-your-application/routing/middleware#matching-paths) documentation.
+### `withMatcher()`
 ```ts
 import { wrapperM, MiddlewareWrapperCallback } from "next-route-handler-wrappers";
-
-type MatchConfig = {
-  paths?: RegExp[];
-};
 
 /**
  * A wrapper that only applies the wrapped handler if the request matches the given paths
@@ -199,19 +195,26 @@ type MatchConfig = {
  * @param cb
  * @returns
  */
-function withMatched<Req extends Request, Res extends Response | void>(
-  config: MatchedConfig = { paths: [] },
+function withMatcher<Req extends Request, Res extends Response | void>(
+  config: { paths?: RegExp[] } = { paths: [] },
   cb: MiddlewareWrapperCallback<Req, Res>
 ) {
   const { paths } = config;
-  const pathsRegex = paths
+
+  // Combine all the paths into a single regex
+  const regexp = paths
     ? new RegExp(paths.map((r) => r.source).join("|"))
     : /.*/;
+
   return wrapperM<Req, Res>((next, req) => {
-    const isMatch = pathsRegex.test(new URL(req.url).pathname)
-    if (isMatch){
+    const isMatchingPath = regexp.test(new URL(req.url).pathname)
+
+    // Run the given callback on the request if the path matches
+    if (isMatchingPath){
       return cb(next, req);
     }
+
+    // Otherwise, just run the next handler
     return next();
   });
 }
@@ -222,139 +225,22 @@ function withMatched<Req extends Request, Res extends Response | void>(
 We can define a basic middleware that only logs a greeting for requests that match a certain path.
 ```ts
 // middleware.ts
-import { withMatched } from "lib/wrappers";
+import { withMatcher } from "lib/wrappers";
 
-
-const withMatchedGreeting = withMatched(
+const withGreeting = withMatcher(
   { paths: [/^\/api(\/.*)?$/] },
   (next, req: NextRequest) => {
-    console.log(`Hello '${req.nextUrl.pathname}'!`);
+    console.log(`Hello 😀 '${req.nextUrl.pathname}'!`);
     const res = next();
-    console.log(`Goodbye '${req.nextUrl.pathname}'!`);
+    console.log(`Goodbye 👋 '${req.nextUrl.pathname}'!`);
     return res;
   }
 );
 
-export const middleware = withMatchedGreeting(() => {
+export const middleware = withGreeting(() => {
   return NextResponse.next();
 });
 ```
-
-### `withMatchedAuthenticated()`
-
-Or we can define an authentication middleware that only applies to matching paths using NextAuth.js' `withAuth` middleware.
-
-```ts
-// middleware.ts
-import withAuth, {
-  NextAuthMiddlewareOptions,
-  NextRequestWithAuth
-} from "next-auth/middleware";
-import { withMatched } from "lib/wrappers";
-
-function withMatchedAuthenticated(
-  config?: MatchConfig,
-  authOptions?: NextAuthMiddlewareOptions
-) {
-  return withMatched(config, (next, req: NextRequestWithAuth) =>
-    // @ts-expect-error - next-auth types do not narrow down to the expected function type
-    withAuth(next, authOptions ?? {})(req)
-  );
-}
-```
-
-**Usage**
-```ts
-// middleware.ts
-import { withMatchedAuthenticated } from "lib/wrappers";
-
-const withAuthentication = withMatchedAuthenticated({
-  paths: [/^\/dashboard.*$/],
-}, {
-  pages: {
-    signIn: "/signin",
-  },
-});
-
-export const middleware = withMatchedAuthenticated(() => {
-  return NextResponse.next();
-});
-```
-
-> NB: The above example will only invoke the `withAuth` middleware if the request matches the given paths. See the next section for a complex example that always invokes the `withAuth` middleware, but only redirects if the request matches the given paths.
-
-### `withMatchedProtected()`
-If you always want to invoke the `withAuth` middleware, (for example, to set the `req.nextauth.token`) property regardless of the request path - but still redirect if the path is 'protected', you can define a custom wrapper with `wrapperM` and override `withAuth`'s redirect logic through its `authorized` callback option.
-
-For example here we show a more complex example with multiple levels of protected paths (regular protected paths and admin-protected paths):
-
-```ts
-import withAuth, {
-  NextAuthMiddlewareOptions,
-  NextRequestWithAuth
-} from "next-auth/middleware";
-
-type MatchConfig = {
-  paths?: RegExp[];
-  adminPaths?: RegExp[];
-};
-
-function withMatchedProtected(config: MatchConfig = { paths: [], adminPaths: [] }) {
-  const { paths, adminPaths } = config;
-  const pathsRegex = paths
-    ? new RegExp(paths.map((r) => r.source).join("|"))
-    : /.*/;
-
-  const adminPathsRegex = adminPaths
-    ? new RegExp(adminPaths.map((r) => r.source).join("|"))
-    : /.*/;
-
-  const authOptions: NextAuthMiddlewareOptions = {
-    callbacks: {
-      authorized({ token, req }) {
-        const isAdminPath = adminPathsRegex.test(new URL(req.url).pathname);
-        if (isAdminPath) {
-          // Admin path, so allow only if token is present and user is admin
-          return !!token && token.role === "admin";
-        }
-
-        const isProtectedPath = pathsRegex.test(new URL(req.url).pathname);
-        if (isProtectedPath) {
-          // Protected path, so allow only if token is present (NB: default behavior of withAuth)
-          return !!token;
-        }
-
-        // If not protected path, allow through (i.e no redirect)
-        return true;
-      }
-    }
-  };
-
-  // Return a wrapper that invokes withAuth with the given options
-  return wrapperM((next, req: NextRequestWithAuth) =>
-    // @ts-expect-error - next-auth types do not narrow down to the expected function
-    withAuth(next, authOptions)(req)
-  );
-}
-```
-
-The above callback logic is adapted from NextAuth.js docs [here](https://next-auth.js.org/configuration/nextjs#advanced-usage).
-
-**Usage**
-```ts
-// middleware.ts
-import { withMatchedProtected } from "lib/wrappers";
-
-const withProtected = withMatchedProtected({
-  paths: [/^\/dashboard.*$/],
-  adminPaths: [/^\/admin.*$/],
-};);
-
-export const middleware = withProtected(() => {
-  return NextResponse.next();
-});
-```
-
 ## Logging x Error Handling
 For logging and handling errors at the route handler level, we can use a `logged` wrapper. This one uses the [`pino`](https://getpino.io/#/) logger, but you can use any logger you want.
 

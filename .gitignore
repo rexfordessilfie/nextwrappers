@@ -1,5 +1,7 @@
 dist
 node_modules
-demo
 scratch.ts
 .DS_Store
+
+examples
+yarn-error.log

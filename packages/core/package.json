@@ -1,6 +1,6 @@
 {
-  "name": "next-route-handler-wrappers",
-  "version": "1.1.0",
+  "name": "@nextwrappers/core",
+  "version": "1.1.1",
   "main": "dist/index.js",
   "license": "MIT",
   "types": "dist/index.d.ts",
@@ -10,8 +10,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "build:watch": "tsc -p tsconfig.json -w",
+    "build": "tsup",
+    "build:watch": "yarn build --watch",
     "test": "ava",
     "prepublishOnly": "rm -rf dist && npm run build"
   },
@@ -36,6 +36,7 @@
     "ava": "^5.3.0",
     "node-mocks-http": "^1.12.2",
     "ts-node": "^10.9.1",
+    "tsup": "^6.7.0",
     "typescript": "^5.1.3"
   }
 }

@@ -1,62 +1,52 @@
-# next-route-handler-wrappers
+# Next.js Route Handler Wrappers
 Reusable, composable middleware-like wrappers for Next.js App Router [Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/router-handlers) and [Middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware).
 
 ## Get Started 🚀
-1. First install the library using your favorite package manager:
+1. First install the core library using your favorite package manager:
+    ```bash
+    npm install @nextwrappers/core # npm
+    yarn add @nextwrappers/core # yarn
+    pnpm add @nextwrappers/core # pnpm
+    ```
 
-    **Using NPM**
+    **OR** Install and use pre-made (utility) wrappers in the [packages](/packages) directory:
     ```bash
-    npm install next-route-handler-wrappers
+    npm install @nextwrappers/async-local-storage @nextwrappers/matching-paths # npm
+    yarn add @nextwrappers/async-local-storage @nextwrappers/matching-paths # yarn
+    pnpm add @nextwrappers/async-local-storage @nextwrappers/matching-paths # pnpm
     ```
-    **Using Yarn**
-    ```bash
-    yarn add next-route-handler-wrappers
-    ```
-2. Next, define a wrapper function with `wrapper`, as follows:
+2. Next, create a route handler wrapper function with `wrapper`, as follows:
 
     ```ts
-    // lib/wrappers/traced-wrapper.ts
-    import { wrapper } from "next-route-handler-wrappers";
+    // lib/wrappers/wrapped.ts
+    import { wrapper } from "@nextwrappers/core";
     import { NextRequest } from "next/server";
 
-    export const traced = wrapper(
-      async (next, request: NextRequest & { traceId: string }) => {
-        // Do something before fulfilling request...(e.g connect to your database, add a tracer id to the request, etc.)
-
-        // Attach any extra properties you want to the request
-        request.traceId = "1234";
-
-        // Execute the request
+    export const wrapped = wrapper(
+      async (next, request: NextRequest & { isWrapped: boolean }) => {
+        request.isWrapped = true;
         const response = await next();
-
-        // Do something after executing the request...(e.g log request duration, emit some analytics, etc.)
-
-        // Return the response
+        response.headers.set("X-Is-Wrapped", "true");
         return response;
       }
     );
     ```
-
 3. Finally, wrap the wrapper around an Next.js API handler in a pages/api file:
     ```ts
     // app/api/hello/route.ts
-    import { traced } from "lib/wrappers/my-wrapper.ts";
+    import { wrapped } from "lib/wrappers";
     import { NextResponse } from "next/server";
 
-    export const GET = traced((request) => {
-      // Access properties provided by the wrapper
-      console.log(request.traceId);
-      // => "1234"
-
-      // Respond to the request!
+    export const GET = wrapped((request) => {
+      console.log(request.isWrapped); // => true
       return NextResponse.json({ message: "Hello from Next.js API!" });
     });
     ```
 
 # Features ✨
-Here are some of the utility methods provided by this library.
-## `wrapper()` / `wrapperM()`
-This lets you create a wrapper around a route/middleware handler that performs some arbitrary piece of logic. 
+Here are some of the utility methods provided by the core library.
+## `wrapper()`, `wrapperM()`
+Creates a wrapper around a route/middleware handler that performs some arbitrary piece of logic. 
 
 It gives you access to the route handler's `request`, an `ext` object containing path parameters, and a `next` function for executing the wrapped route handler.
 
@@ -68,15 +58,14 @@ import { getServerSession } from "next-auth/react";
 import { Session } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "app/api/auth/[...nextauth]/route.ts";
-
-import { wrapper } from "next-route-handler-wrappers";
+import { wrapper } from "@nextwrappers/core";
 
 export const authenticated = wrapper(
   async (next, request: NextRequest & { user: Session["user"] }) => {
     const { user } = await getServerSession(authOptions);
 
     if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 500 });
+      return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
     }
 
     request.user = session.user;
@@ -86,35 +75,24 @@ export const authenticated = wrapper(
 ```
 
 ### Example - `restrictedTo()`
-Ensure that a user has the right role to access the API route.
+We can also create wrappers with arguments, such as this one to ensure a user has the right role to access the API route.
 ```ts
-import { wrapper, InferReq } from "next-route-handler-wrappers";
+import { wrapper, InferReq } from "@nextwrappers/core";
 import { NextResponse } from "next/server";
-
 import { authenticated } from "lib/auth-wrapper";
 
-const ROLES = {
-  guest: "guest",
-  user: "user",
-  admin: "admin",
-  superAdmin: "superAdmin"
-} as const;
-
-type Role = (typeof ROLES)[keyof typeof ROLES];
-
-const ROLE_LEVELS: Record<Role, number> = {
+export const userLevels = {
   guest: 0,
   user: 1,
-  admin: 2,
-  superAdmin: 3
-};
+  admin: 2
+} as const;
 
-export function restrictedTo<R extends Role>(role: R) {
-  const allowedLevel = ROLE_LEVELS[role];
-
+export function restrictedTo(level: number) {
   return wrapper(async (next, request: InferReq<typeof authenticated>) => {
-    const userLevel = ROLE_LEVELS[request.user.role ?? ROLES.guest];
-    if (userLevel < allowedLevel) {
+    const userRole = request.user.role;
+    const userLevel = userLevels[userRole ?? "guest"] ?? userLevels.guest;
+
+    if (userLevel < level) {
       return NextResponse.json(
         { message: "Unauthorized operation!" },
         { status: 403 }
@@ -126,172 +104,124 @@ export function restrictedTo<R extends Role>(role: R) {
 }
 ```
 
-## `stack()` / `stackM()`
-This lets you combine multiple wrappers to be applied within the same request. The wrappers are executed with the *last* wrapper being wrapped closest to the route handler.
+> NB: `InferReq` is a utility type that lets us infer the request type of a wrapper. This is useful when we want to combine multiple wrappers that share the same request type.
+
+## `stack()`, `stackM()`
+Combines multiple wrappers into one to be applied within the same request. The wrappers are executed with the *last* wrapper being wrapped closest to the route handler.
 
 Building from the example above, we can combine `restrictedTo` and `authenticated` wrappers to restrict a route to authenticated users with a particular role. 
 
 ```ts
-import { stack } from "next-route-handler-wrappers";
-import { authenticated, restrictedTo } from "lib/wrappers";
+import { stack } from "@nextwrappers/core";
+import { authenticated, restrictedTo, userLevels } from "lib/wrappers";
 
-const restrictedToUser = stack(authenticated).with(restrictedTo("user"));
-const restrictedToAdmin = stack(authenticated).with(restrictedTo("admin"));
-const restrictedToSuperAdmin = stack(authenticated).with(
-  restrictedTo("superAdmin")
-);
+const restrictedToUser = stack(authenticated).with(restrictedTo(userLevels.user));
+const restrictedToAdmin = stack(authenticated).with(restrictedTo(userLevels.admin));
 ```
   
-## `chain()` / `chainM()`
-This also lets us combine wrappers similarly to `stack`, except that the wrappers are executed with the *first* wrapper being wrapped closest to the route handler.
+## `chain()`, `chainM()`
+Combines wrappers like `stack`, except that the wrappers are executed with the *first* wrapper being wrapped closest to the route handler.
 
 Building from the previous example, we can express the above wrappers with `chain` as:
 ```ts
-import { chain } from "next-route-handler-wrappers";
-import { authenticated, restrictedTo } from "lib/wrappers";
+import { chain } from "@nextwrappers/core";
+import { authenticated, restrictedTo, userLevels } from "lib/wrappers";
 
-const restrictedToUser = chain(restrictedTo("user")).with(authenticated);
-const restrictedToAdmin = chain(restrictedTo("admin")).with(authenticated);
-const restrictedToSuperAdmin = chain(restrictedTo("admin")).with(authenticated);
+const restrictedToUser = chain(restrictedTo(userLevels.user)).with(authenticated);
+const restrictedToAdmin = chain(restrictedTo(userLevels.admin)).with(authenticated);
+
 ```
   
 In general, `stack` is more ergonomic since we add onto the back, versus at the front with `chain`.
   
-## `merge()` / `mergeM()` 
-This is the most primitive way to combine multiple wrappers. It takes in two wrapper and combines them into one. The second wrapper is wrapped closest to the route handler.
+## `merge()`, `mergeM()` 
+Combines two wrappers at a time into one. The second wrapper is wrapped closest to the route handler.
 
 Both `stack` and `chain` are built on top of `merge`!
 
 Again, we can express the above wrapper as:
 ```ts
-import { merge } from "next-route-handler-wrappers";
-import { authenticated, restrictedTo } from "lib/wrappers";
+import { merge } from "@nextwrappers/core";
+import { authenticated, restrictedTo, userLevels } from "lib/wrappers";
 
-const restrictedToUser = merge(authenticated, restrictedTo("user"));
-const restrictedToAdmin = merge(authenticated, restrictedTo("admin"));
-const restrictedToSuperAdmin = merge(authenticated, restrictedTo("superAdmin"));
+const restrictedToUser = merge(authenticated, restrictedTo(userLevels.user));
+const restrictedToAdmin = merge(authenticated, restrictedTo(userLevels.admin));
 ```
 
 > The `stack` and `chain` have a `.with()` for endless wrapper combination, but `merge` does not. However, since the result of `merge` is a wrapper, we can combine multiple `merge` calls to achieve the same effect:
 ```ts
-import { merge } from "next-route-handler-wrappers"
+import { merge } from "@nextwrappers/core"
 import { w1, w2, w3, w4 } from "lib/wrappers"
 
 const superWrapper = merge(merge(merge(w1, w2), w3), w4);
 ```
 
 # Use-Cases 📝
-Here are some common ideas and use-cases for `next-route-handler-wrappers`:
+Here are some common ideas and use-cases for `@nextwrappers/core`:
 
 ## Matching Paths in `middleware.ts`
-We can define a `withMatcher` wrapper that selectively applies a middleware logic based on the request path, building on top of Next.js' ["Matching Paths"](https://nextjs.org/docs/app/building-your-application/routing/middleware#matching-paths) documentation.
-### `withMatcher()`
-```ts
-import { wrapperM, MiddlewareWrapperCallback } from "next-route-handler-wrappers";
+We can define a matcher middleware wrapper that selectively applies a middleware logic based on the request path, building on top of Next.js' ["Matching Paths"](https://nextjs.org/docs/app/building-your-application/routing/middleware#matching-paths) documentation.
 
-/**
- * A wrapper that only applies the wrapped handler if the request matches the given paths
- * @param config
- * @param cb
- * @returns
- */
-function withMatcher<Req extends Request, Res extends Response | void>(
-  config: { paths?: RegExp[] } = { paths: [] },
-  cb: MiddlewareWrapperCallback<Req, Res>
-) {
-  const { paths } = config;
+This functionality is available as source-code and as a library. See docs [here](/packages/matching-paths/).
 
-  // Combine all the paths into a single regex
-  const regexp = paths
-    ? new RegExp(paths.map((r) => r.source).join("|"))
-    : /.*/;
+## Request Tracing
+We can use a `traced` wrapper to trace the request with a unique ID. This is useful for debugging and logging. 
 
-  return wrapperM<Req, Res>((next, req) => {
-    const isMatchingPath = regexp.test(new URL(req.url).pathname)
+This involves using async local storage, which is available as source-code and as a library. See docs [here](/packages/async-local-storage/).
 
-    // Run the given callback on the request if the path matches
-    if (isMatchingPath){
-      return cb(next, req);
-    }
-
-    // Otherwise, just run the next handler
-    return next();
-  });
-}
-```
-
-**Usage - Middleware Logging (on Matching Paths)**
-
-We can define a basic middleware that only logs a greeting for requests that match a certain path.
-```ts
-// middleware.ts
-import { withMatcher } from "lib/wrappers";
-
-const withGreeting = withMatcher(
-  { paths: [/^\/api(\/.*)?$/] },
-  (next, req: NextRequest) => {
-    console.log(`Hello 😀 '${req.nextUrl.pathname}'!`);
-    const res = next();
-    console.log(`Goodbye 👋 '${req.nextUrl.pathname}'!`);
-    return res;
-  }
-);
-
-export const middleware = withGreeting(() => {
-  return NextResponse.next();
-});
-```
-## Logging x Error Handling
+## Logging and Error Handling
 For logging and handling errors at the route handler level, we can use a `logged` wrapper. This one uses the [`pino`](https://getpino.io/#/) logger, but you can use any logger you want.
 
 ### `logged()`
 ```ts
-import { wrapper } from "next-route-handler-wrappers";
+import { wrapper } from "@nextwrappers/core";
 import { NextRequest, NextResponse } from "next/server";
 import pino from "pino";
 
 const logger = pino();
 
-const logged = wrapper(async (next, request: NextRequest, { params }) => {
-  const start = Date.now();
-  const { pathname, href } = request.nextUrl;
-  const referrer = request.referrer;
-
-  logger.info(
-    {
-      url: href,
-      referrer,
-    },
-    `[${request.method}] ${pathname} started`
-  );
-
-  try {
-    const response = await next();
+export const logged = wrapper(
+  async (next, request: NextRequest, { params }) => {
+    const start = Date.now();
+    const { pathname, href } = request.nextUrl;
 
     logger.info(
       {
-        params,
-        status: response.status,
+        params
       },
-      `[${request.method}] ${pathname} completed (${Date.now() - start}ms)`
-    );
-    return response;
-  } catch (e) {
-    logger.error(
-      {
-        reason: (e as Error).message
-      },
-      `[${request.method}] ${pathname} errored (${Date.now() - start}ms)`
+      `[${request.method}] ${pathname} started`
     );
 
-    return NextResponse.json(
-      { error: "Request failed", reason: (e as Error).message },
-      { status: 500 }
-    );
+    try {
+      const response = await next();
+
+      logger.info(
+        {
+          status: response.status
+        },
+        `[${request.method}] ${pathname} completed (${Date.now() - start}ms)`
+      );
+      return response;
+    } catch (e) {
+      logger.error(
+        {
+          reason: (e as Error).message
+        },
+        `[${request.method}] ${pathname} errored (${Date.now() - start}ms)`
+      );
+
+      return NextResponse.json(
+        { error: "Request failed", reason: (e as Error).message },
+        { status: 500 }
+      );
+    }
   }
-});
+);
 ```
 
+> We can couple this with the request tracing wrapper to have all logs include the trace ID. To do so, we simply import and use the `getStore` function provided by the AsyncLocalStorage wrapper. See more [here](/packages/async-local-storage/).
+
+**Usage**
 ```ts
 // app/api/user/[id]/route.ts
 import { logged } from "lib/wrappers";
@@ -303,50 +233,11 @@ export const GET = logged((request, { params }) => {
 });
 ```
 
-## DB Connections (Mongoose)
-We can use the `dbConnected` wrapper to ensure that we have a connection ready before making database operations in a single request.
-
-### `dbConnected()`
-```ts
-import { NextRequest } from "next/server";
-import { wrapper } from "next-route-handler-wrappers";
-import * as models from "lib/models";
-
-import { dbConnect } from "lib/dbConnect"; // Source: https://github.com/vercel/next.js/blob/canary/examples/with-mongodb-mongoose/lib/dbConnect.js
-
-export const dbConnected = wrapper(
-  async (
-    next,
-    request: NextRequest & { dbConnected: Promise<void> }
-  ) => {
-    request.dbConnected = dbConnect();
-    return next();
-  }
-);
-```
-**Usage**
-
-```ts
-// app/api/user/[id]/route.ts
-import { dbConnected } from "lib/wrappers";
-import { NextRequest, NextResponse } from "next/server";
-import { User } from "lib/models";
-
-export const GET = dbConnected(
-  async (request: NextRequest, { params }: { params: { id: string } }) => {
-    const { id } = params;
-    await request.dbConnected;
-    const user = await User.findById(id);
-    return NextResponse.json(user);
-  }
-);
-```
-
 ## Request Validation
 We can perform validation of any parts of the request, including the body, query, or even path parameters. We can use the [`zod`](https://zod.dev) validator for this, and then attach the parsed values to the request object.
 ### `validated()`
 ```ts
-import { wrapper } from "next-route-handler-wrappers";
+import { wrapper } from "@nextwrappers/core";
 import { z } from "zod";
 import { NextRequest } from "next/server";
 
@@ -357,35 +248,41 @@ export function validated<B extends z.Schema, Q extends z.Schema>(schemas: {
   return wrapper(
     async (
       next,
-      req: NextRequest & { parsedBody?: z.infer<B>; parsedQuery?: z.infer<Q> }
+      req: NextRequest & { bodyParsed?: z.infer<B>; queryParsed?: z.infer<Q> }
     ) => {
       if (schemas.body) {
-        req.parsedBody = schemas.body.parse(await req.json());
+        const body = await req.json();
+        req.bodyParsed = schemas.body.parse(body);
       }
 
       if (schemas.query) {
-        const query: Record<string, any> = {};
-
-        req.nextUrl.searchParams.forEach((value, key) => {
-          if (Array.isArray(query[key])) {
-            query[key].push(value);
-            return;
-          }
-
-          if (query[key]) {
-            query[key] = [query[key], value];
-            return;
-          }
-
-          query[key] = value;
-        });
-
-        req.parsedQuery = schemas.query.parse(query);
+        const query = getQueryObject(req.url);
+        req.queryParsed = schemas.query.parse(query);
       }
 
       return next();
     }
   );
+}
+
+function getQueryObject(url: string) {
+  const query: Record<string, any> = {};
+
+  new URL(url).searchParams.forEach((value, key) => {
+    if (Array.isArray(query[key])) {
+      query[key].push(value);
+      return;
+    }
+
+    if (query[key]) {
+      query[key] = [query[key], value];
+      return;
+    }
+
+    query[key] = value;
+  });
+
+  return query;
 }
 ```
 
@@ -393,83 +290,58 @@ export function validated<B extends z.Schema, Q extends z.Schema>(schemas: {
 
 ```ts
 //app/api/user/[id]/route.ts
-import { stack, wrapper } from "next-route-handler-wrappers";
+import { NextResponse } from "next/server";
+import { User } from "lib/models";
+import { dbConnect } from "lib/db";
 import { userUpdateSchema } from "lib/schemas";
 import {
-  authenticated,
-  dbConnected,
-  logged,
-  restrictedToUser,
-  validated
+  protectedWrapped,
+  validated,
+  restrictedToSpecificUser
 } from "lib/wrappers";
-import { NextResponse } from "next/server";
 
-import { z } from "zod";
-import { User } from "lib/models";
+type RouteInfo = {
+  params: {
+    id: string;
+  };
+};
 
-const wrapped = stack(logged).with(dbConnected).with(authenticated);
-
-const friends = z.string().transform(JSON.parse);
-const wrappedGet = wrapped.with(
-  validated({ query: z.object({ friends: friends.optional() }) })
-);
-
-export const GET = wrappedGet(async function (
-  request,
-  { params }: { params: { id: string } }
-) {
-  await request.dbConnected;
-  const result = User.findById(params.id);
-
-  if (request.parsedQuery.friends) {
-    const user = await result.populate("friends");
-    return NextResponse.json({ user: await user.populate("friends") });
-  }
-
-  const user = await result;
-  return NextResponse.json({ user });
-});
-
-const wrappedPost = wrapped
-  .with(restrictedToUser)
+const wrappedPost = protectedWrapped
   .with(
-    wrapper(async (next, request, { params }: { params: { id: string } }) => {
-      // Restricting to the user's own ID
-      if (request.user.id !== params.id) {
-        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-      }
-      return next();
-    })
+    /* Only allow current user to update their own information */
+    restrictedToSpecificUser((_, { params }: RouteInfo) => params.id)
   )
   .with(
+    /* Ensure sure request body is valid */
     validated({
       body: userUpdateSchema
     })
   );
 
-export const POST = wrappedPost(async function (
-  request,
-  { params }: { params: { id: string } }
-) {
-  const user = await User.findByIdAndUpdate(
-    params.id,
-    request.parsedBody,
-    { new: true }
-  );
+export const POST = wrappedPost(async (request, { params }: RouteInfo) => {
+  await dbConnect();
+
+  const user = await User.findByIdAndUpdate(params.id, request.bodyParsed, {
+    new: true
+  });
+
   return NextResponse.json({ user });
 });
 ```
 
 # Using 3rd-Party Route Handlers
+Any wrapper created with this library can readily be used with route handlers provided by other libraries.
+
 ## With [tRPC](https://trpc.io)
 Adapted from [here](https://trpc.io/docs/server/adapters/nextjs#route-handlers)
 ```ts
 // app/api/trpc/[trpc]/route.ts
 import * as trpcNext from "@trpc/server/adapters/next";
-import { logged } from "lib/wrappers";
 import { createContext } from "~server/context";
 import { appRouter } from "~/server/api/router";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+
+import { logged } from "lib/wrappers";
 
 const handler = logged((req) =>
   fetchRequestHandler({

@@ -2,11 +2,18 @@
 Reusable, composable middleware-like wrappers for Next.js App Router [Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/router-handlers) and [Middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware).
 
 ## Get Started 🚀
-1. First install the library using your favorite package manager:
+1. First install the core library using your favorite package manager:
     ```bash
     npm install @nextwrappers/core # npm
     yarn add @nextwrappers/core # yarn
     pnpm add @nextwrappers/core # pnpm
+    ```
+
+    **OR** Install and use pre-made (utility) wrappers in the [packages](/packages) directory:
+    ```bash
+    npm install @nextwrappers/async-local-storage @nextwrappers/matching-paths # npm
+    yarn add @nextwrappers/async-local-storage @nextwrappers/matching-paths # yarn
+    pnpm add @nextwrappers/async-local-storage @nextwrappers/matching-paths # pnpm
     ```
 2. Next, create a route handler wrapper function with `wrapper`, as follows:
 
@@ -37,7 +44,7 @@ Reusable, composable middleware-like wrappers for Next.js App Router [Route Hand
     ```
 
 # Features ✨
-Here are some of the utility methods provided by this library.
+Here are some of the utility methods provided by the core library.
 ## `wrapper()`, `wrapperM()`
 Creates a wrapper around a route/middleware handler that performs some arbitrary piece of logic. 
 

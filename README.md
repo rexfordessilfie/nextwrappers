@@ -79,7 +79,6 @@ const ROLES = {
   guest: "guest",
   user: "user",
   admin: "admin",
-  superAdmin: "superAdmin"
 } as const;
 
 type Role = (typeof ROLES)[keyof typeof ROLES];
@@ -88,7 +87,6 @@ const ROLE_LEVELS: Record<Role, number> = {
   guest: 0,
   user: 1,
   admin: 2,
-  superAdmin: 3
 };
 
 export function restrictedTo<R extends Role>(role: R) {
@@ -121,9 +119,6 @@ import { authenticated, restrictedTo } from "lib/wrappers";
 
 const restrictedToUser = stack(authenticated).with(restrictedTo("user"));
 const restrictedToAdmin = stack(authenticated).with(restrictedTo("admin"));
-const restrictedToSuperAdmin = stack(authenticated).with(
-  restrictedTo("superAdmin")
-);
 ```
   
 ## `chain()`, `chainM()`
@@ -300,35 +295,39 @@ import { NextResponse } from "next/server";
 import { User } from "lib/models";
 import { dbConnect } from "lib/db";
 import { userUpdateSchema } from "lib/schemas";
-import { publicWrapped, validated, restrictedToOwner } from "lib/wrappers";
+import {
+  protectedWrapped,
+  validated,
+  restrictedToSpecificUser
+} from "lib/wrappers";
 
-type Extra = {
+type RouteInfo = {
   params: {
     id: string;
   };
 };
 
-const wrappedPost = publicWrapped
-  // Restrict request to the owner of the user resource
-  .with(restrictedToOwner((_, { params }: Extra) => params.id))
+const wrappedPost = protectedWrapped
   .with(
-    // Validate the request body
+    /* Only allow current user to update their own information */
+    restrictedToSpecificUser((_, { params }: RouteInfo) => params.id)
+  )
+  .with(
+    /* Ensure sure request body is valid */
     validated({
       body: userUpdateSchema
     })
   );
 
-export const POST = wrappedPost(
-  async (request, { params }: { params: { id: string } }) => {
-    await dbConnect();
+export const POST = wrappedPost(async (request, { params }: RouteInfo) => {
+  await dbConnect();
 
-    const user = await User.findByIdAndUpdate(params.id, request.bodyParsed, {
-      new: true
-    });
-    
-    return NextResponse.json({ user });
-  }
-);
+  const user = await User.findByIdAndUpdate(params.id, request.bodyParsed, {
+    new: true
+  });
+
+  return NextResponse.json({ user });
+});
 ```
 
 # Using 3rd-Party Route Handlers

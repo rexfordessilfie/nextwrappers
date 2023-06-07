@@ -23,7 +23,7 @@ export type MatchingPathsConfig = {
  *    const res = next();
  *    console.log(`Goodbye '${req.nextUrl.pathname}'!`);
  *    return res;
- * }
+ * });
  *
  * export const middleware = withGreeting((req) => {
  *  return NextResponse.next();

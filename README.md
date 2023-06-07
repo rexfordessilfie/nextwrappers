@@ -39,7 +39,7 @@ Reusable, composable middleware-like wrappers for Next.js App Router [Route Hand
 # Features ✨
 Here are some of the utility methods provided by this library.
 ## `wrapper()`, `wrapperM()`
-This lets you create a wrapper around a route/middleware handler that performs some arbitrary piece of logic. 
+Creates a wrapper around a route/middleware handler that performs some arbitrary piece of logic. 
 
 It gives you access to the route handler's `request`, an `ext` object containing path parameters, and a `next` function for executing the wrapped route handler.
 
@@ -58,7 +58,7 @@ export const authenticated = wrapper(
     const { user } = await getServerSession(authOptions);
 
     if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 500 });
+      return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
     }
 
     request.user = session.user;
@@ -68,33 +68,24 @@ export const authenticated = wrapper(
 ```
 
 ### Example - `restrictedTo()`
-Ensure that a user has the right role to access the API route.
+We can also create wrappers with arguments, such as this one to ensure a user has the right role to access the API route.
 ```ts
 import { wrapper, InferReq } from "@nextwrappers/core";
 import { NextResponse } from "next/server";
 
 import { authenticated } from "lib/auth-wrapper";
 
-const ROLES = {
-  guest: "guest",
-  user: "user",
-  admin: "admin",
-} as const;
-
-type Role = (typeof ROLES)[keyof typeof ROLES];
-
-const ROLE_LEVELS: Record<Role, number> = {
+export const userLevels = {
   guest: 0,
   user: 1,
   admin: 2,
-};
+} as const;
 
-export function restrictedTo<R extends Role>(role: R) {
-  const allowedLevel = ROLE_LEVELS[role];
+export function restrictedTo(level: number) {
 
   return wrapper(async (next, request: InferReq<typeof authenticated>) => {
-    const userLevel = ROLE_LEVELS[request.user.role ?? ROLES.guest];
-    if (userLevel < allowedLevel) {
+    const userLevel = userLevels[request.user.role ?? "guest"];
+    if (userLevel < level) {
       return NextResponse.json(
         { message: "Unauthorized operation!" },
         { status: 403 }
@@ -109,46 +100,45 @@ export function restrictedTo<R extends Role>(role: R) {
 > NB: `InferReq` is a utility type that lets us infer the request type of a wrapper. This is useful when we want to combine multiple wrappers that share the same request type.
 
 ## `stack()`, `stackM()`
-This lets you combine multiple wrappers to be applied within the same request. The wrappers are executed with the *last* wrapper being wrapped closest to the route handler.
+Combines multiple wrappers into one to be applied within the same request. The wrappers are executed with the *last* wrapper being wrapped closest to the route handler.
 
 Building from the example above, we can combine `restrictedTo` and `authenticated` wrappers to restrict a route to authenticated users with a particular role. 
 
 ```ts
 import { stack } from "@nextwrappers/core";
-import { authenticated, restrictedTo } from "lib/wrappers";
+import { authenticated, restrictedTo, userLevels } from "lib/wrappers";
 
-const restrictedToUser = stack(authenticated).with(restrictedTo("user"));
-const restrictedToAdmin = stack(authenticated).with(restrictedTo("admin"));
+const restrictedToUser = stack(authenticated).with(restrictedTo(userLevels.user));
+const restrictedToAdmin = stack(authenticated).with(restrictedTo(userLevels.admin));
 ```
   
 ## `chain()`, `chainM()`
-This also lets us combine wrappers similarly to `stack`, except that the wrappers are executed with the *first* wrapper being wrapped closest to the route handler.
+Combines wrappers like `stack`, except that the wrappers are executed with the *first* wrapper being wrapped closest to the route handler.
 
 Building from the previous example, we can express the above wrappers with `chain` as:
 ```ts
 import { chain } from "@nextwrappers/core";
-import { authenticated, restrictedTo } from "lib/wrappers";
+import { authenticated, restrictedTo, userLevels } from "lib/wrappers";
 
-const restrictedToUser = chain(restrictedTo("user")).with(authenticated);
-const restrictedToAdmin = chain(restrictedTo("admin")).with(authenticated);
-const restrictedToSuperAdmin = chain(restrictedTo("admin")).with(authenticated);
+const restrictedToUser = chain(restrictedTo(userLevels.user)).with(authenticated);
+const restrictedToAdmin = chain(restrictedTo(userLevels.admin)).with(authenticated);
+
 ```
   
 In general, `stack` is more ergonomic since we add onto the back, versus at the front with `chain`.
   
 ## `merge()`, `mergeM()` 
-This is the most primitive way to combine multiple wrappers. It takes in two wrapper and combines them into one. The second wrapper is wrapped closest to the route handler.
+Combines two wrappers at a time into one. The second wrapper is wrapped closest to the route handler.
 
 Both `stack` and `chain` are built on top of `merge`!
 
 Again, we can express the above wrapper as:
 ```ts
 import { merge } from "@nextwrappers/core";
-import { authenticated, restrictedTo } from "lib/wrappers";
+import { authenticated, restrictedTo, userLevels } from "lib/wrappers";
 
-const restrictedToUser = merge(authenticated, restrictedTo("user"));
-const restrictedToAdmin = merge(authenticated, restrictedTo("admin"));
-const restrictedToSuperAdmin = merge(authenticated, restrictedTo("superAdmin"));
+const restrictedToUser = merge(authenticated, restrictedTo(userLevels.user));
+const restrictedToAdmin = merge(authenticated, restrictedTo(userLevels.admin));
 ```
 
 > The `stack` and `chain` have a `.with()` for endless wrapper combination, but `merge` does not. However, since the result of `merge` is a wrapper, we can combine multiple `merge` calls to achieve the same effect:

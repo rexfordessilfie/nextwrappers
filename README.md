@@ -296,72 +296,39 @@ function getQueryObject(url: string) {
 
 ```ts
 //app/api/user/[id]/route.ts
-import { stack, wrapper } from "@nextwrappers/core";
-import { userUpdateSchema } from "lib/schemas";
-import {
-  authenticated,
-  logged,
-  restrictedToUser,
-  validated
-} from "lib/wrappers";
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { User } from "lib/models";
 import { dbConnect } from "lib/db";
+import { userUpdateSchema } from "lib/schemas";
+import { publicWrapped, validated, restrictedToOwner } from "lib/wrappers";
 
-const wrapped = stack(logged).with(authenticated);
+type Extra = {
+  params: {
+    id: string;
+  };
+};
 
-const friends = z.string().transform(JSON.parse);
-
-const wrappedGet = wrapped.with(
-  validated({ query: z.object({ friends: friends.optional() }) })
-);
-
-export const GET = wrappedGet(async function (
-  request,
-  { params }: { params: { id: string } }
-) {
-  await dbConnect();
-  const result = User.findById(params.id);
-
-  if (request.queryParsed.friends) {
-    const user = await result.populate("friends");
-    return NextResponse.json({ user: await user.populate("friends") });
-  }
-
-  const user = await result;
-  return NextResponse.json({ user });
-});
-
-const restrictedToSameUser = wrapper(async (next, request, { params }: { params: { id: string } }) => {
-  if (request.user.id !== params.id) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-  return next();
-});
-
-const wrappedPost = wrapped
-  .with(restrictedToUser)
-  .with(restrictedToSameUser)
+const wrappedPost = publicWrapped
+  // Restrict request to the owner of the user resource
+  .with(restrictedToOwner((_, { params }: Extra) => params.id))
   .with(
+    // Validate the request body
     validated({
       body: userUpdateSchema
     })
   );
 
-export const POST = wrappedPost(async function (
-  request,
-  { params }: { params: { id: string } }
-) {
-  await dbConnect();
+export const POST = wrappedPost(
+  async (request, { params }: { params: { id: string } }) => {
+    await dbConnect();
 
-  const user = await User.findByIdAndUpdate(
-    params.id,
-    request.bodyParsed,
-    { new: true }
-  );
-  return NextResponse.json({ user });
-});
+    const user = await User.findByIdAndUpdate(params.id, request.bodyParsed, {
+      new: true
+    });
+    
+    return NextResponse.json({ user });
+  }
+);
 ```
 
 # Using 3rd-Party Route Handlers

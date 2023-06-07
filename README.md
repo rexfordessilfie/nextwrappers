@@ -79,19 +79,19 @@ We can also create wrappers with arguments, such as this one to ensure a user ha
 ```ts
 import { wrapper, InferReq } from "@nextwrappers/core";
 import { NextResponse } from "next/server";
-
 import { authenticated } from "lib/auth-wrapper";
 
 export const userLevels = {
   guest: 0,
   user: 1,
-  admin: 2,
+  admin: 2
 } as const;
 
 export function restrictedTo(level: number) {
-
   return wrapper(async (next, request: InferReq<typeof authenticated>) => {
-    const userLevel = userLevels[request.user.role ?? "guest"];
+    const userRole = request.user.role;
+    const userLevel = userLevels[userRole ?? "guest"] ?? userLevels.guest;
+
     if (userLevel < level) {
       return NextResponse.json(
         { message: "Unauthorized operation!" },

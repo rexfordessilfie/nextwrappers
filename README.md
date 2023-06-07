@@ -1,4 +1,4 @@
-# Next.js Route Wrappers
+# Next.js Route Handler Wrappers
 Reusable, composable middleware-like wrappers for Next.js App Router [Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/router-handlers) and [Middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware).
 
 ## Get Started 🚀
@@ -17,19 +17,9 @@ Reusable, composable middleware-like wrappers for Next.js App Router [Route Hand
 
     export const wrapped = wrapper(
       async (next, request: NextRequest & { isWrapped: boolean }) => {
-        // Do something before fulfilling request...(e.g connect to your database, add a tracer id to the request, etc.)
-
-        // Attach any extra properties you want to the request
         request.isWrapped = true;
-
-        // Execute the request
-        // OR throw an error, return a response to short-circuit the request
         const response = await next();
-
-        // Do something after executing the request...(e.g attach headers, log request duration, emit some analytics, etc.)
-        res.headers.set("X-Is-Wrapped", "true");
-
-        // Return the response
+        response.headers.set("X-Is-Wrapped", "true");
         return response;
       }
     );
@@ -41,11 +31,7 @@ Reusable, composable middleware-like wrappers for Next.js App Router [Route Hand
     import { NextResponse } from "next/server";
 
     export const GET = wrapped((request) => {
-      // Access properties provided by the wrapper
-      console.log(request.isWrapped);
-      // => true
-
-      // Respond to the request!
+      console.log(request.isWrapped); // => true
       return NextResponse.json({ message: "Hello from Next.js API!" });
     });
     ```
@@ -347,8 +333,7 @@ export const GET = wrappedGet(async function (
   return NextResponse.json({ user });
 });
 
-// Only the user can update their own information (as defined by the `id` in the path parameters)
-const ownedByUser = wrapper(async (next, request, { params }: { params: { id: string } }) => {
+const restrictedToSameUser = wrapper(async (next, request, { params }: { params: { id: string } }) => {
   if (request.user.id !== params.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -357,7 +342,7 @@ const ownedByUser = wrapper(async (next, request, { params }: { params: { id: st
 
 const wrappedPost = wrapped
   .with(restrictedToUser)
-  .with(ownedByUser)
+  .with(restrictedToSameUser)
   .with(
     validated({
       body: userUpdateSchema

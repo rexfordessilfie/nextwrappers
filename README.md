@@ -173,41 +173,43 @@ import pino from "pino";
 
 const logger = pino();
 
-const logged = wrapper(async (next, request: NextRequest, { params }) => {
-  const start = Date.now();
-  const { pathname, href } = request.nextUrl;
-
-  logger.info(
-    {
-      params
-    },
-    `[${request.method}] ${pathname} started`
-  );
-
-  try {
-    const response = await next();
+export const logged = wrapper(
+  async (next, request: NextRequest, { params }) => {
+    const start = Date.now();
+    const { pathname, href } = request.nextUrl;
 
     logger.info(
       {
-        status: response.status
+        params
       },
-      `[${request.method}] ${pathname} completed (${Date.now() - start}ms)`
-    );
-    return response;
-  } catch (e) {
-    logger.error(
-      {
-        reason: (e as Error).message
-      },
-      `[${request.method}] ${pathname} errored (${Date.now() - start}ms)`
+      `[${request.method}] ${pathname} started`
     );
 
-    return NextResponse.json(
-      { error: "Request failed", reason: (e as Error).message },
-      { status: 500 }
-    );
+    try {
+      const response = await next();
+
+      logger.info(
+        {
+          status: response.status
+        },
+        `[${request.method}] ${pathname} completed (${Date.now() - start}ms)`
+      );
+      return response;
+    } catch (e) {
+      logger.error(
+        {
+          reason: (e as Error).message
+        },
+        `[${request.method}] ${pathname} errored (${Date.now() - start}ms)`
+      );
+
+      return NextResponse.json(
+        { error: "Request failed", reason: (e as Error).message },
+        { status: 500 }
+      );
+    }
   }
-});
+);
 ```
 
 > We can couple this with the request tracing wrapper to have all logs include the trace ID. To do so, we simply import and use the `getStore` function provided by the AsyncLocalStorage wrapper. See more [here](/packages/async-local-storage/).

@@ -66,7 +66,7 @@ export const logger = (prefix: string, message: string) => {
 Finally, we can use the logger in our route handler:
 
 ```ts
-// app/api/.../route.ts
+// app/api/hello/route.ts
 import { asyncLocalStorageWrapped, logger } from "lib";
 
 const doSomething = async () => {

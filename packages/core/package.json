@@ -2,6 +2,19 @@
   "name": "@nextwrappers/core",
   "version": "1.1.1",
   "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json",
+    "./pages": {
+      "import": "./dist/pages/index.js",
+      "require": "./dist/pages/index.cjs",
+      "types": "./dist/pages/index.d.ts"
+    }
+  },
   "license": "MIT",
   "types": "dist/index.d.ts",
   "author": "Rexford Essilfie <rexfordessilfie09@gmail.com>",
@@ -34,6 +47,7 @@
   "devDependencies": {
     "@types/node": "^20.2.5",
     "ava": "^5.3.0",
+    "next": "^13.4.4",
     "node-mocks-http": "^1.12.2",
     "ts-node": "^10.9.1",
     "tsup": "^6.7.0",

@@ -24,7 +24,7 @@ h.DELETE((_req, res) => {
   res.send("DELETE");
 });
 
-test("handler - calls GET handler for get method", async (t) => {
+test("calls GET handler method", async (t) => {
   let httpMock = createMocks({
     method: "GET",
   });
@@ -33,7 +33,7 @@ test("handler - calls GET handler for get method", async (t) => {
   t.is(httpMock.res._getData(), "GET");
 });
 
-test("handler - calls POST handler for get method", async (t) => {
+test("calls POST handler method", async (t) => {
   let httpMock = createMocks({
     method: "POST",
   });
@@ -42,7 +42,7 @@ test("handler - calls POST handler for get method", async (t) => {
   t.is(httpMock.res._getData(), "POST");
 });
 
-test("handler - calls DELETE handler for get method", async (t) => {
+test("calls DELETE handler method", async (t) => {
   let httpMock = createMocks({
     method: "DELETE",
   });
@@ -51,7 +51,7 @@ test("handler - calls DELETE handler for get method", async (t) => {
   t.is(httpMock.res._getData(), "DELETE");
 });
 
-test("handler - calls PATCH handler for get method", async (t) => {
+test("calls PATCH handler method", async (t) => {
   let httpMock = createMocks({
     method: "PATCH",
   });
@@ -60,7 +60,7 @@ test("handler - calls PATCH handler for get method", async (t) => {
   t.is(httpMock.res._getData(), "PATCH");
 });
 
-test("handler - calls PUT handler for get method", async (t) => {
+test("calls PUT handler method", async (t) => {
   let httpMock = createMocks({
     method: "PUT",
   });

@@ -1,8 +1,11 @@
 # Next.js Route Handler Wrappers
-Reusable, composable middleware-like wrappers for Next.js App Router [Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/router-handlers) and [Middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware).
+
+Reusable, composable middleware-like wrappers for Next.js API route and `middleware.ts` handlers.
 
 ## Get Started 🚀
-1. First install the core library using your favorite package manager:
+
+1.  First install the core library using your favorite package manager:
+
     ```bash
     npm install @nextwrappers/core # npm
     yarn add @nextwrappers/core # yarn
@@ -10,16 +13,21 @@ Reusable, composable middleware-like wrappers for Next.js App Router [Route Hand
     ```
 
     **OR** Install and use pre-made (utility) wrappers in the [packages](/packages) directory:
+
     ```bash
     npm install @nextwrappers/async-local-storage @nextwrappers/matching-paths # npm
     yarn add @nextwrappers/async-local-storage @nextwrappers/matching-paths # yarn
     pnpm add @nextwrappers/async-local-storage @nextwrappers/matching-paths # pnpm
     ```
-2. Next, create a route handler wrapper function with `wrapper`, as follows:
+
+2.  Next, create a route handler wrapper function with `wrapper`, as follows:
+
+     <details open>
+     <summary><b>App Router</b></summary>
 
     ```ts
     // lib/wrappers/wrapped.ts
-    import { wrapper } from "@nextwrappers/core";
+    import { wrapper } from "@nextwrappers/core"; // OR from "@nextwrappers/core/pagesapi" for pages/api directory
     import { NextRequest } from "next/server";
 
     export const wrapped = wrapper(
@@ -31,7 +39,37 @@ Reusable, composable middleware-like wrappers for Next.js App Router [Route Hand
       }
     );
     ```
-3. Finally, wrap the wrapper around an Next.js API handler in a pages/api file:
+
+     </details>
+
+     <!-- <details>
+     <summary><b>Pages Router</b></summary>
+    
+    ```ts
+    // lib/wrappers/wrapped.ts
+    import { wrapper } from "@nextwrappers/core/pagesapi";
+    import { NextApiRequest } from "next";
+    
+    export const wrapped = wrapper(
+      async (
+        next,
+        request: NextApiRequest & { isWrapped: boolean },
+        response
+      ) => {
+        request.isWrapped = true;
+        response.headers.set("X-Is-Wrapped", "true");
+        await next();
+      }
+    );
+    ```
+    
+     </details> -->
+
+3.  Finally, wrap the wrapper around an Next.js API handler in a pages/api file:
+
+    <details open>
+    <summary><b>App Router</b></summary>
+
     ```ts
     // app/api/hello/route.ts
     import { wrapped } from "lib/wrappers";
@@ -43,16 +81,50 @@ Reusable, composable middleware-like wrappers for Next.js App Router [Route Hand
     });
     ```
 
+    </details>
+
+    <!-- <details>
+    <summary><b>Pages Router</b></summary>
+
+    ```ts
+    // pages/api/hello.ts
+    import { wrapped } from "lib/wrappers";
+    import { createApiHandler } from "@nextwrappers/core/pagesapi";
+
+    const handler = createApiHandler({
+      wrappers: {
+        GET: wrapped,
+      },
+    });
+
+    handler.GET((request, response) => {
+      console.log(request.isWrapped); // => true
+      response.json({
+        message: "Hello from Next.js API!",
+      });
+    });
+
+    export default handler;
+    ```
+
+    > NB: We are using `createApiHandler` method to create a handler which we can selectively apply wrappers for different request methods, and then we register a `GET` handler for the `GET` method.
+
+    </details> -->
+
 # Features ✨
+
 Here are some of the utility methods provided by the core library.
+
 ## `wrapper()`, `wrapperM()`
-Creates a wrapper around a route/middleware handler that performs some arbitrary piece of logic. 
+
+Creates a wrapper around a route/middleware handler that performs some arbitrary piece of logic.
 
 It gives you access to the route handler's `request`, an `ext` object containing path parameters, and a `next` function for executing the wrapped route handler.
 
-
 ### Example - `authenticated()`
+
 Ensure a user has been authenticated with next-auth before continuing with request, then attach current user to the request.
+
 ```ts
 import { getServerSession } from "next-auth/react";
 import { Session } from "next-auth";
@@ -75,7 +147,9 @@ export const authenticated = wrapper(
 ```
 
 ### Example - `restrictedTo()`
+
 We can also create wrappers with arguments, such as this one to ensure a user has the right role to access the API route.
+
 ```ts
 import { wrapper, InferReq } from "@nextwrappers/core";
 import { NextResponse } from "next/server";
@@ -84,7 +158,7 @@ import { authenticated } from "lib/auth-wrapper";
 export const userLevels = {
   guest: 0,
   user: 1,
-  admin: 2
+  admin: 2,
 } as const;
 
 export function restrictedTo(level: number) {
@@ -107,39 +181,51 @@ export function restrictedTo(level: number) {
 > NB: `InferReq` is a utility type that lets us infer the request type of a wrapper. This is useful when we want to combine multiple wrappers that share the same request type.
 
 ## `stack()`, `stackM()`
-Combines multiple wrappers into one to be applied within the same request. The wrappers are executed with the *last* wrapper being wrapped closest to the route handler.
 
-Building from the example above, we can combine `restrictedTo` and `authenticated` wrappers to restrict a route to authenticated users with a particular role. 
+Combines multiple wrappers into one to be applied within the same request. The wrappers are executed with the _last_ wrapper being wrapped closest to the route handler.
+
+Building from the example above, we can combine `restrictedTo` and `authenticated` wrappers to restrict a route to authenticated users with a particular role.
 
 ```ts
 import { stack } from "@nextwrappers/core";
 import { authenticated, restrictedTo, userLevels } from "lib/wrappers";
 
-const restrictedToUser = stack(authenticated).with(restrictedTo(userLevels.user));
-const restrictedToAdmin = stack(authenticated).with(restrictedTo(userLevels.admin));
+const restrictedToUser = stack(authenticated).with(
+  restrictedTo(userLevels.user)
+);
+const restrictedToAdmin = stack(authenticated).with(
+  restrictedTo(userLevels.admin)
+);
 ```
-  
+
 ## `chain()`, `chainM()`
-Combines wrappers like `stack`, except that the wrappers are executed with the *first* wrapper being wrapped closest to the route handler.
+
+Combines wrappers like `stack`, except that the wrappers are executed with the _first_ wrapper being wrapped closest to the route handler.
 
 Building from the previous example, we can express the above wrappers with `chain` as:
+
 ```ts
 import { chain } from "@nextwrappers/core";
 import { authenticated, restrictedTo, userLevels } from "lib/wrappers";
 
-const restrictedToUser = chain(restrictedTo(userLevels.user)).with(authenticated);
-const restrictedToAdmin = chain(restrictedTo(userLevels.admin)).with(authenticated);
-
+const restrictedToUser = chain(restrictedTo(userLevels.user)).with(
+  authenticated
+);
+const restrictedToAdmin = chain(restrictedTo(userLevels.admin)).with(
+  authenticated
+);
 ```
-  
+
 In general, `stack` is more ergonomic since we add onto the back, versus at the front with `chain`.
-  
-## `merge()`, `mergeM()` 
+
+## `merge()`, `mergeM()`
+
 Combines two wrappers at a time into one. The second wrapper is wrapped closest to the route handler.
 
 Both `stack` and `chain` are built on top of `merge`!
 
 Again, we can express the above wrapper as:
+
 ```ts
 import { merge } from "@nextwrappers/core";
 import { authenticated, restrictedTo, userLevels } from "lib/wrappers";
@@ -149,30 +235,88 @@ const restrictedToAdmin = merge(authenticated, restrictedTo(userLevels.admin));
 ```
 
 > The `stack` and `chain` have a `.with()` for endless wrapper combination, but `merge` does not. However, since the result of `merge` is a wrapper, we can combine multiple `merge` calls to achieve the same effect:
+
 ```ts
-import { merge } from "@nextwrappers/core"
-import { w1, w2, w3, w4 } from "lib/wrappers"
+import { merge } from "@nextwrappers/core";
+import { w1, w2, w3, w4 } from "lib/wrappers";
 
 const superWrapper = merge(merge(merge(w1, w2), w3), w4);
 ```
 
+<!-- ## `createApiHandler()` (Pages Router)
+
+Creates an API handler that allows us to define wrappers and handlers for each method.
+
+```ts
+// pages/api/.../[file].ts
+import {
+  publicWrapped,
+  protectedWrapped,
+  adminWrapped,
+  validated,
+} from "lib/wrappers";
+import { createApiHandler } from "@nextwrappers/core/pagesapi";
+import { z } from "zod";
+
+const h = createApiHandler({
+  wrappers: {
+    GET: publicWrapped.with(
+      validated({
+        query: z.object({
+          populated: z.union([z.literal("true"), z.literal("false")]),
+        }),
+      })
+    ),
+    PATCH: protectedWrapped.with(
+      validated({
+        body: z.object({
+          name: z.string().min(3).optional(),
+        }),
+      })
+    ),
+    DELETE: adminWrapped,
+  },
+});
+
+h.GET((request, response) => {
+  console.log(request.query); // => { populated: "true" }
+  response.json({ message: "Hello from GET!" });
+});
+
+h.PATCH((request, response) => {
+  console.log(request.body); // => { name: "John Doe" }
+  response.json({ message: "Hello from POST" });
+});
+
+h.DELETE((request, response) => {
+  response.json({ message: "Hello from DELETE" });
+});
+
+export default h;
+``` -->
+
 # Use-Cases 📝
+
 Here are some common ideas and use-cases for `@nextwrappers/core`:
 
 ## Matching Paths in `middleware.ts`
+
 We can define a matcher middleware wrapper that selectively applies a middleware logic based on the request path, building on top of Next.js' ["Matching Paths"](https://nextjs.org/docs/app/building-your-application/routing/middleware#matching-paths) documentation.
 
 This functionality is available as source-code and as a library. See docs [here](/packages/matching-paths/).
 
 ## Request Tracing
-We can use a `traced` wrapper to trace the request with a unique ID. This is useful for debugging and logging. 
+
+We can use a `traced` wrapper to trace the request with a unique ID. This is useful for debugging and logging.
 
 This involves using async local storage, which is available as source-code and as a library. See docs [here](/packages/async-local-storage/).
 
 ## Logging and Error Handling
+
 For logging and handling errors at the route handler level, we can use a `logged` wrapper. This one uses the [`pino`](https://getpino.io/#/) logger, but you can use any logger you want.
 
 ### `logged()`
+
 ```ts
 import { wrapper } from "@nextwrappers/core";
 import { NextRequest, NextResponse } from "next/server";
@@ -187,7 +331,7 @@ export const logged = wrapper(
 
     logger.info(
       {
-        params
+        params,
       },
       `[${request.method}] ${pathname} started`
     );
@@ -197,7 +341,7 @@ export const logged = wrapper(
 
       logger.info(
         {
-          status: response.status
+          status: response.status,
         },
         `[${request.method}] ${pathname} completed (${Date.now() - start}ms)`
       );
@@ -205,7 +349,7 @@ export const logged = wrapper(
     } catch (e) {
       logger.error(
         {
-          reason: (e as Error).message
+          reason: (e as Error).message,
         },
         `[${request.method}] ${pathname} errored (${Date.now() - start}ms)`
       );
@@ -222,6 +366,7 @@ export const logged = wrapper(
 > We can couple this with the request tracing wrapper to have all logs include the trace ID. To do so, we simply import and use the `getStore` function provided by the AsyncLocalStorage wrapper. See more [here](/packages/async-local-storage/).
 
 **Usage**
+
 ```ts
 // app/api/user/[id]/route.ts
 import { logged } from "lib/wrappers";
@@ -234,8 +379,11 @@ export const GET = logged((request, { params }) => {
 ```
 
 ## Request Validation
+
 We can perform validation of any parts of the request, including the body, query, or even path parameters. We can use the [`zod`](https://zod.dev) validator for this, and then attach the parsed values to the request object.
+
 ### `validated()`
+
 ```ts
 import { wrapper } from "@nextwrappers/core";
 import { z } from "zod";
@@ -297,7 +445,7 @@ import { userUpdateSchema } from "lib/schemas";
 import {
   protectedWrapped,
   validated,
-  restrictedToSpecificUser
+  restrictedToSpecificUser,
 } from "lib/wrappers";
 
 type RouteInfo = {
@@ -314,7 +462,7 @@ const wrappedPost = protectedWrapped
   .with(
     /* Ensure sure request body is valid */
     validated({
-      body: userUpdateSchema
+      body: userUpdateSchema,
     })
   );
 
@@ -322,7 +470,7 @@ export const POST = wrappedPost(async (request, { params }: RouteInfo) => {
   await dbConnect();
 
   const user = await User.findByIdAndUpdate(params.id, request.bodyParsed, {
-    new: true
+    new: true,
   });
 
   return NextResponse.json({ user });
@@ -330,10 +478,13 @@ export const POST = wrappedPost(async (request, { params }: RouteInfo) => {
 ```
 
 # Using 3rd-Party Route Handlers
+
 Any wrapper created with this library can readily be used with route handlers provided by other libraries.
 
 ## With [tRPC](https://trpc.io)
+
 Adapted from [here](https://trpc.io/docs/server/adapters/nextjs#route-handlers)
+
 ```ts
 // app/api/trpc/[trpc]/route.ts
 import * as trpcNext from "@trpc/server/adapters/next";
@@ -348,7 +499,7 @@ const handler = logged((req) =>
     endpoint: "/api/trpc",
     req,
     router: appRouter,
-    createContext
+    createContext,
   })
 );
 
@@ -356,6 +507,7 @@ export { handler as GET, handler as POST };
 ```
 
 ## With [NextAuth](https://next-auth.js.org/getting-started/example)
+
 Adapted from [here](https://next-auth.js.org/configuration/initialization#route-handlers-app)
 
 ```ts
@@ -369,17 +521,17 @@ const handler = logged(
     providers: [
       GithubProvider({
         clientId: process.env.GITHUB_ID,
-        clientSecret: process.env.GITHUB_SECRET
-      })
-    ]
+        clientSecret: process.env.GITHUB_SECRET,
+      }),
+    ],
   })
 );
 
 export { handler as GET, handler as POST };
 ```
 
-
 ## With [Uploadthing](https://uploadthing.com/)
+
 Adapted from [here](https://docs.uploadthing.com/nextjs/appdir#create-a-nextjs-api-route-using-the-filerouter)
 
 ```ts
@@ -387,10 +539,10 @@ Adapted from [here](https://docs.uploadthing.com/nextjs/appdir#create-a-nextjs-a
 
 import { createNextRouteHandler } from "uploadthing/next";
 import { logged } from "lib/wrappers";
- 
+
 import { ourFileRouter } from "./core";
- 
- // Get route handlers for Next App Router
+
+// Get route handlers for Next App Router
 const { GET: _GET, POST: _POST } = createNextRouteHandler({
   router: ourFileRouter,
 });
@@ -401,4 +553,5 @@ export const POST = logged(_POST);
 ```
 
 # Acknowledgements
+
 This project builds on top of patterns from [`nextjs-handler-middleware`](https://github.com/rexfordessilfie/nextjs-handler-middleware).

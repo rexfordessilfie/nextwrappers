@@ -22,9 +22,9 @@ export function wrapper<
       // Run the callback. Cast req to the type of callback's req
       // since we assume deps are already attached to the request
       return await cb(
+        next,
         req as InferApiWrapperCallbackReq<typeof cb>,
-        res as Res,
-        next
+        res as Res
       );
     };
   };
@@ -103,7 +103,7 @@ export type InferApiWrapperReq<M extends ApiWrapper<any>> = Parameters<
 export type ApiWrapperCallback<
   Req extends NextApiRequest = NextApiRequest & Record<string, any>,
   Res extends NextApiResponse = NextApiResponse<any>
-> = (req: Req, res: Res, next: Function) => ReturnType<NextApiHandler>;
+> = (next: Function, req: Req, res: Res) => ReturnType<NextApiHandler>;
 
 /**
  * Helper type to infer the callback's request type
@@ -112,7 +112,7 @@ export type InferApiWrapperCallbackReq<
   C extends ApiWrapperCallback<Req, Res>,
   Req extends NextApiRequest = any,
   Res extends NextApiResponse = any
-> = Parameters<C>[0];
+> = Parameters<C>[1];
 
 /**
  * Helper type to infer the wrapper's handler argument request type

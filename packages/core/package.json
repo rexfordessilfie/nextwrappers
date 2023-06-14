@@ -1,6 +1,6 @@
 {
   "name": "@nextwrappers/core",
-  "version": "1.1.1",
+  "version": "1.1.2-rc1",
   "main": "dist/index.js",
   "exports": {
     ".": {
@@ -9,10 +9,10 @@
       "types": "./dist/index.d.ts"
     },
     "./package.json": "./package.json",
-    "./pages": {
-      "import": "./dist/pages/index.js",
-      "require": "./dist/pages/index.cjs",
-      "types": "./dist/pages/index.d.ts"
+    "./pagesapi": {
+      "import": "./dist/pagesapi/index.js",
+      "require": "./dist/pagesapi/index.cjs",
+      "types": "./dist/pagesapi/index.d.ts"
     }
   },
   "license": "MIT",

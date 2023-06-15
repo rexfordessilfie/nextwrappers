@@ -42,14 +42,14 @@ Reusable, composable middleware-like wrappers for Next.js API route and `middlew
 
      </details>
 
-     <!-- <details>
+     <details>
      <summary><b>Pages Router</b></summary>
-    
+
     ```ts
     // lib/wrappers/wrapped.ts
     import { wrapper } from "@nextwrappers/core/pagesapi";
     import { NextApiRequest } from "next";
-    
+
     export const wrapped = wrapper(
       async (
         next,
@@ -62,8 +62,8 @@ Reusable, composable middleware-like wrappers for Next.js API route and `middlew
       }
     );
     ```
-    
-     </details> -->
+
+     </details>
 
 3.  Finally, wrap the wrapper around an Next.js API handler in a pages/api file:
 
@@ -83,7 +83,7 @@ Reusable, composable middleware-like wrappers for Next.js API route and `middlew
 
     </details>
 
-    <!-- <details>
+    <details>
     <summary><b>Pages Router</b></summary>
 
     ```ts
@@ -109,7 +109,7 @@ Reusable, composable middleware-like wrappers for Next.js API route and `middlew
 
     > NB: We are using `createApiHandler` method to create a handler which we can selectively apply wrappers for different request methods, and then we register a `GET` handler for the `GET` method.
 
-    </details> -->
+    </details>
 
 # Features ✨
 
@@ -243,7 +243,7 @@ import { w1, w2, w3, w4 } from "lib/wrappers";
 const superWrapper = merge(merge(merge(w1, w2), w3), w4);
 ```
 
-<!-- ## `createApiHandler()` (Pages Router)
+## `createApiHandler()` (Pages Router)
 
 Creates an API handler that allows us to define wrappers and handlers for each method.
 
@@ -293,7 +293,7 @@ h.DELETE((request, response) => {
 });
 
 export default h;
-``` -->
+```
 
 # Use-Cases 📝
 

@@ -1,8 +1,35 @@
 import { createMocks } from "node-mocks-http";
 import { createApiHandler, wrapper } from "../../src/pagesapi";
 import test from "ava";
+import { NextApiRequest } from "next";
 
-const h = createApiHandler();
+const h = createApiHandler({
+  wrappers: {
+    GET: wrapper((next, req: NextApiRequest & { isGetWrapped: true }) => {
+      req.isGetWrapped = true;
+      next();
+    }),
+
+    POST: wrapper((next, req: NextApiRequest & { isPostWrapped: true }) => {
+      req.isPostWrapped = true;
+      next();
+    }),
+
+    PATCH: wrapper((next, req: NextApiRequest & { isPatchWrapped: true }) => {
+      req.isPatchWrapped = true;
+      next();
+    }),
+
+    PUT: wrapper((next, req: NextApiRequest & { isPutWrapped: true }) => {
+      req.isPutWrapped = true;
+      next();
+    }),
+    DELETE: wrapper((next, req: NextApiRequest & { isDeleteWrapped: true }) => {
+      req.isDeleteWrapped = true;
+      next();
+    }),
+  },
+});
 
 h.GET((_req, res) => {
   res.send("GET");
@@ -31,6 +58,7 @@ test("calls GET handler method", async (t) => {
 
   h(httpMock.req, httpMock.res);
   t.is(httpMock.res._getData(), "GET");
+  t.is(httpMock.req.isGetWrapped, true);
 });
 
 test("calls POST handler method", async (t) => {
@@ -40,6 +68,7 @@ test("calls POST handler method", async (t) => {
 
   h(httpMock.req, httpMock.res);
   t.is(httpMock.res._getData(), "POST");
+  t.is(httpMock.req.isPostWrapped, true);
 });
 
 test("calls DELETE handler method", async (t) => {
@@ -49,6 +78,7 @@ test("calls DELETE handler method", async (t) => {
 
   h(httpMock.req, httpMock.res);
   t.is(httpMock.res._getData(), "DELETE");
+  t.is(httpMock.req.isDeleteWrapped, true);
 });
 
 test("calls PATCH handler method", async (t) => {
@@ -58,6 +88,7 @@ test("calls PATCH handler method", async (t) => {
 
   h(httpMock.req, httpMock.res);
   t.is(httpMock.res._getData(), "PATCH");
+  t.is(httpMock.req.isPatchWrapped, true);
 });
 
 test("calls PUT handler method", async (t) => {
@@ -67,4 +98,5 @@ test("calls PUT handler method", async (t) => {
 
   h(httpMock.req, httpMock.res);
   t.is(httpMock.res._getData(), "PUT");
+  t.is(httpMock.req.isPutWrapped, true);
 });

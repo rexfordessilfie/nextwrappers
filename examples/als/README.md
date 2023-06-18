@@ -1,4 +1,14 @@
+# AsyncLocalStorage + Next.js Routes Example
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+
+It showcases how to use AsyncLocalStorage in a Next.js route handler. It also has a `benchmark.js` script for testing the performance between a route with ALS and one without.
+
+To run the benchmark script, ensure the application is running, and then run:
+
+```bash
+node benchmark.js
+```
 
 ## Getting Started
 

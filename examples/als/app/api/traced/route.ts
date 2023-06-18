@@ -2,5 +2,5 @@ import { NextResponse } from "next/server";
 import { getTraceId, traced } from "../wrappers";
 
 export const GET = traced(() => {
-  return NextResponse.json({ traceId: getTraceId() });
+  return NextResponse.json({ id: getTraceId() });
 });

@@ -1,5 +1,6 @@
+import { NextResponse } from "next/server";
 import { v4 as uuid } from "uuid";
 
 export const GET = () => {
-  return new Response(uuid());
+  return NextResponse.json({ id: uuid() });
 };

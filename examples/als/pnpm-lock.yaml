@@ -1,7 +1,7 @@
 lockfileVersion: 5.4
 
 specifiers:
-  '@nextwrappers/async-local-storage': 1.0.0-rc1
+  '@nextwrappers/async-local-storage': 1.0.0
   '@types/node': 20.2.5
   '@types/react': 18.2.8
   '@types/react-dom': 18.2.4
@@ -13,7 +13,7 @@ specifiers:
   uuid: ^9.0.0
 
 dependencies:
-  '@nextwrappers/async-local-storage': 1.0.0-rc1
+  '@nextwrappers/async-local-storage': 1.0.0
   '@types/node': 20.2.5
   '@types/react': 18.2.8
   '@types/react-dom': 18.2.4
@@ -113,8 +113,8 @@ packages:
     dev: false
     optional: true
 
-  /@nextwrappers/async-local-storage/1.0.0-rc1:
-    resolution: {integrity: sha512-qVVntjq/f69ljQXav2m/3zrvrYZUC8CSKgp6AVTBVsQZn3gOyGKBnnhBl08DlMTk8otpKkzp3rXhzscezmm8tw==}
+  /@nextwrappers/async-local-storage/1.0.0:
+    resolution: {integrity: sha512-lXPUTRgkYs2nj0rXQJ1/70rj+t8yqWRMN60AbLIF8/MC6QusK0pz5lNEQWlwZhspYmJjzZ7C/K467prMdhsoEw==}
     dependencies:
       path-to-regexp: 6.2.1
     dev: false

@@ -3,5 +3,5 @@ node_modules
 scratch.ts
 .DS_Store
 
-examples
+examples/demo*
 yarn-error.log

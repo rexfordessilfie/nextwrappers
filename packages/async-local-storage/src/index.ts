@@ -33,14 +33,13 @@ export function asyncLocalStorage<Store>(
   options: AsyncLocalStorageWrapperOptions<Store>
 ) {
   const { initialize, storage = new AsyncLocalStorage<Store>() } = options;
-  storage.enterWith;
   return {
     storage,
     getStore: () => storage.getStore(),
     wrapper: wrapper((next, req, ext) => {
       const store = initialize?.(req, ext);
       return runWithAsyncLocalStorage(storage, store, next, [req, ext]);
-    })
+    }),
   };
 }
 

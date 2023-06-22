@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse, NextApiHandler } from "next";
+import type { NextApiRequest, NextApiResponse, NextApiHandler } from "next";
 
 /**
  * Creates a wrapper-like functionality for Next.js API handlers.
@@ -103,7 +103,11 @@ export type InferApiWrapperReq<M extends ApiWrapper<any>> = Parameters<
 export type ApiWrapperCallback<
   Req extends NextApiRequest = NextApiRequest & Record<string, any>,
   Res extends NextApiResponse = NextApiResponse<any>
-> = (next: Function, req: Req, res: Res) => ReturnType<NextApiHandler>;
+> = (
+  next: ApiHandler<Req, Res>,
+  req: Req,
+  res: Res
+) => ReturnType<NextApiHandler>;
 
 /**
  * Helper type to infer the callback's request type

@@ -1,4 +1,4 @@
-export const genericWrapper = <CArgs extends any[], CReturn>(
+export const createWrapper = <CArgs extends any[], CReturn>(
   cb: (next: Next, ...args: CArgs) => CReturn
 ) => {
   return <F extends Func<CArgs, any>>(func: F) => {
@@ -12,7 +12,7 @@ export const genericWrapper = <CArgs extends any[], CReturn>(
   };
 };
 
-export const typedWrapper = <XArgs extends any[], XReturn>() => {
+export const typedWrapperCreator = <XArgs extends any[], XReturn>() => {
   return <CArgs extends any[], CReturn extends XReturn>(
     cb: (
       next: Next,

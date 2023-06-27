@@ -6,7 +6,7 @@
     "build:core": "yarn --cwd packages/core build",
     "build:async-local-storage": "yarn --cwd packages/async-local-storage build",
     "build:matching-paths": "yarn --cwd packages/matching-paths build",
-    "build:generic": "yarn --cwd packages/generic build",
-    "build": "yarn build:core && yarn build:async-local-storage && yarn build:matching-paths"
+    "build:generic": "pnpm -C packages/generic build",
+    "build": "yarn build:core && yarn build:async-local-storage && yarn build:matching-paths && yarn build:generic"
   }
 }

@@ -4,6 +4,7 @@ export const genericWrapper = <CArgs extends any[], CReturn>(
   return <F extends Func<CArgs, any>>(func: F) => {
     return (...args: Parameters<F>) => {
       const next = () => func(...args);
+      next._wrapped = func;
       return cb(next as any, ...(args as any)) as
         | ReturnType<typeof cb>
         | ReturnType<F>;
@@ -20,9 +21,17 @@ export const typedWrapper = <XArgs extends any[], XReturn>() => {
         : CArgs
     ) => CReturn
   ) => {
-    return <F extends Func<CArgs, any>>(func: F) => {
+    return <
+      F extends Func<
+        Parameters<typeof cb> extends [infer _N, ...infer Args] ? Args : CArgs,
+        any
+      >
+    >(
+      func: F
+    ) => {
       return (...args: Parameters<F>) => {
-        const next = () => func(...args);
+        const next = () => func(...(args as any));
+        next._wrapped = func;
         return cb(next as any, ...(args as any)) as
           | ReturnType<typeof cb>
           | ReturnType<F>;
@@ -35,23 +44,9 @@ type Func<TArgs extends any[], TReturn extends unknown> = (
   ...args: TArgs
 ) => TReturn;
 
-type Next = () => never;
+type Next = (() => never) & { _wrapped: Function };
 
 type Append<T, U> = U extends any[] ? [...U, T] : [U, T];
-
-type TupleExtends<
-  ATuple extends any[],
-  BTuple extends any[],
-  SoFar extends any[] = []
-> = BTuple extends [infer B, ...infer BRest]
-  ? ATuple extends [infer A, ...infer ARest]
-    ? B extends A
-      ? TupleExtends<ARest, BRest, Append<B, SoFar>> // Recurse and accumulate result
-      : never // B does not extend A so end
-    : never
-  : ATuple extends [infer _A, ...infer _ARest]
-  ? never
-  : SoFar;
 
 /**
  * Given two tuples ATuple and BTuple, take matching extends from BTuple,
@@ -77,8 +72,3 @@ export type TupleExtendsInclude<
   : ATuple extends [infer A, ...infer ARest] // Still some of ATuple left?
   ? TupleExtendsInclude<ARest, BTuple, Append<A, SoFar>> // Some of ATuple remaining so keep adding from ATuple
   : SoFar; // ATuple exhausted so return final SoFar type
-
-type Test = TupleExtendsInclude<
-  [number, { a: string }, { c: boolean }],
-  [number, { a: string; b: string }]
->;

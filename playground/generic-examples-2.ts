@@ -9,7 +9,7 @@ const routeHandlerWrapper = typedWrapper<
   never
 >();
 
-export const apiRouteLogger = apiRouteWrapper((next, req: NextApiRequest) => {
+export const apiRouteLogger = apiRouteWrapper((next, req) => {
   console.log(`[${req.method}] ${req.url}`);
   next();
 });

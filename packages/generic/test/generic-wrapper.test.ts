@@ -2,12 +2,12 @@ import test from "ava";
 
 import { createMocks } from "node-mocks-http";
 
-import { genericWrapper } from "../src";
+import { createWrapper } from "../src";
 
 test("genericWrapper - runs handler", async (t) => {
   let handlerCallCount = 0;
 
-  const wrapped = genericWrapper(async (next, _req) => {
+  const wrapped = createWrapper(async (next, _req: Request) => {
     return await next();
   });
 
@@ -32,7 +32,7 @@ test("genericWrapper - runs handler", async (t) => {
 });
 
 test("genericWrapper - attaches properties to request", async (t) => {
-  const wrapped = genericWrapper(
+  const wrapped = createWrapper(
     async (next, req: Request & { foo: string }) => {
       req.foo = "bar";
       return await next();

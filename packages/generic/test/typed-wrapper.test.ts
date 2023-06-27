@@ -1,15 +1,15 @@
 import test from "ava";
 
-import { typedWrapper } from "../src";
+import { typedWrapperCreator } from "../src";
 
 type BinOpWrapperCtx = { foo: string };
 type BinOpWrapperArgs = [number, number, BinOpWrapperCtx]; // Using `never` as a whole here for the ctx
 
-const binOpWrapper = typedWrapper<BinOpWrapperArgs, never>(); // Using never as a whole for the eventual inferred return type
+const binOpWrapper = typedWrapperCreator<BinOpWrapperArgs, never>(); // Using never as a whole for the eventual inferred return type
 
 const binOpLogger = binOpWrapper((next, a, b, ctx) => {
   ctx.foo = "bar";
-  console.log(`a:${a}, b:${b}, op:${next._wrapped.name}`);
+  console.log(`a:${a}, b:${b}, op:${next._wrappedFunc.name}`);
   const result = next();
 
   return result;

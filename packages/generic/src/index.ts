@@ -4,7 +4,7 @@ export const createWrapper = <CArgs extends any[], CReturn>(
   return <F extends Func<CArgs, any>>(func: F) => {
     return (...args: Parameters<F>) => {
       const next = () => func(...args);
-      next._wrapped = func;
+      next._wrappedFunc = func;
       return cb(next as any, ...(args as any)) as
         | ReturnType<typeof cb>
         | ReturnType<F>;
@@ -31,7 +31,7 @@ export const typedWrapperCreator = <XArgs extends any[], XReturn>() => {
     ) => {
       return (...args: Parameters<F>) => {
         const next = () => func(...(args as any));
-        next._wrapped = func;
+        next._wrappedFunc = func;
         return cb(next as any, ...(args as any)) as
           | ReturnType<typeof cb>
           | ReturnType<F>;
@@ -44,7 +44,7 @@ type Func<TArgs extends any[], TReturn extends unknown> = (
   ...args: TArgs
 ) => TReturn;
 
-type Next = (() => never) & { _wrapped: Function };
+type Next = (() => never) & { _wrappedFunc: Function };
 
 type Append<T, U> = U extends any[] ? [...U, T] : [U, T];
 

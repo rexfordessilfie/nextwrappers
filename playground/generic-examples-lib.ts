@@ -1,34 +1,37 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { genericWrapper, typedWrapper } from "@nextwrappers/generic";
+import { createWrapper, typedWrapperCreator } from "@nextwrappers/generic";
 import { NextRequest } from "next/server";
 
-const serverActionWrapper = typedWrapper<[FormData], void>();
-const apiRouteWrapper = typedWrapper<[NextApiRequest, NextApiResponse], void>();
-const routeHandlerWrapper = typedWrapper<
+const createServerActionWrapper = typedWrapperCreator<[FormData], void>();
+const createApiRouteWrapper = typedWrapperCreator<
+  [NextApiRequest, NextApiResponse],
+  void
+>();
+const createRouteHandlerWrapper = typedWrapperCreator<
   [NextRequest, { params: Record<string, any> }],
   never
 >();
 
-export const apiRouteLogger = apiRouteWrapper((next, req) => {
+export const apiRouteLogger = createApiRouteWrapper((next, req) => {
   console.log(`[${req.method}] ${req.url}`);
   next();
 });
 
-export const routeHandlerLogger = routeHandlerWrapper(
+export const routeHandlerLogger = createRouteHandlerWrapper(
   (next, req: NextRequest & { test: string }) => {
     console.log(`[${req.method}] ${req.url}`);
     return next();
   }
 );
 
-export const serverActionLogger = serverActionWrapper(
+export const serverActionLogger = createServerActionWrapper(
   (next, formData: FormData) => {
     console.log(formData);
     return next();
   }
 );
 
-export const addWrapper = genericWrapper((next, a: number, b: number) => {
+export const addWrapper = createWrapper((next, a: number, b: number) => {
   console.log(`First arg: ${a}, Second Arg: ${b}`);
 
   if (Math.random() > 0.5) {

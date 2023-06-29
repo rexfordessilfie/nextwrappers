@@ -1,3 +1,6 @@
+/**
+ * Create a wrapper for a function. The function's types are inferred from he wrapper's args.
+ */
 export const createWrapper = <CArgs extends any[], CReturn>(
   cb: (next: Next, ...args: CArgs) => CReturn
 ) => {
@@ -21,6 +24,9 @@ export const createWrapper = <CArgs extends any[], CReturn>(
   };
 };
 
+/**
+ * Create a wrapper creator with function type specified directly with generic types.
+ */
 export const typedWrapperCreator = <
   TArgs extends any[] = any[],
   TReturn extends any = any
@@ -99,7 +105,7 @@ type Replace<T, U, V> = Exclude<T, U> | V;
  *    [number, { a: string; b: string }]
  *  >; //=> [number, {a: string; b: string}, {c: boolean}]
  * */
-export type TupleExtendsInclude<
+type TupleExtendsInclude<
   ATuple extends any[],
   BTuple extends any[],
   SoFar extends any[] = []

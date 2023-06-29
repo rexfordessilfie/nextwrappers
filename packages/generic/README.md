@@ -8,7 +8,7 @@ The goals of the helper functions of this library are to be:
 2. **Transparent**: applying wrappers to functions does not affect the type signature of the function
 3. **Type Safe**: wrappers cannot be applied to functions with mismatching types
 
-> ⚠️ This is not considered fully stable yet for now to the hackery at the type-level, but experimentaiton and feedback is welcome!
+> ⚠️ This is not considered fully stable yet for now at the type-level, but experimentation and feedback is welcome!
 
 ## Installation
 
@@ -22,7 +22,7 @@ pnpm add @nextwrappers/generic # pnpm
 
 ## API
 
-- `typedWrapperCreator()`- Returns a function for creating wrappers based on provied types.
+- `typedWrapperCreator()`- Returns a function for creating wrappers based on provided types.
 - `createWrapper()`- Creates a wrapper for a function.
 
 # Usage

@@ -30,7 +30,9 @@ pnpm add @nextwrappers/generic # pnpm
 Use Case - Creating a strongly typed binary operator wrapper that takes the absolute of the return.
 
 ```ts
-const binOpAbs = createBinOpWrapper((next) => {
+const createBinNumericOpWrapper = typedWrapperCreator<[number, number]>();
+
+const binNumericOpAbs = createBinNumericOpWrapper((next) => {
   // Execute the wrapped function.
   const result = next<number>();
 
@@ -49,8 +51,8 @@ export function subtract(a: number, b: number) {
   return a - b;
 }
 
-export const addAbs = binOpAbs(add);
-export const subtractAbs = binOpAbs(subtract);
+export const addAbs = binNumericOpAbs(add);
+export const subtractAbs = binNumericOpAbs(subtract);
 ```
 
 ### `createWrapper`

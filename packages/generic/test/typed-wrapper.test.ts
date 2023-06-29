@@ -3,7 +3,7 @@ import test from "ava";
 import { typedWrapperCreator, nextFuncSymbol } from "../src";
 
 const createBinOpWrapper =
-  typedWrapperCreator<[number, number, { foo: string }]>(); // Using never as a whole for the eventual inferred return type
+  typedWrapperCreator<[number, number, { foo: string }]>();
 
 const binOpLogger = createBinOpWrapper((next, a, b, ctx) => {
   ctx.foo = "bar";

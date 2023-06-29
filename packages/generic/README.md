@@ -14,11 +14,11 @@ The goals of the helper functions of this library are to be:
 
 In Progress
 
-<!-- ```bash
+```bash
 npm install @nextwrappers/generic # npm
 yarn add @nextwrappers/generic # yarn
 pnpm add @nextwrappers/generic # pnpm
-``` -->
+```
 
 ## API
 

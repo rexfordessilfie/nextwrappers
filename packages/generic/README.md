@@ -23,7 +23,7 @@ pnpm add @nextwrappers/generic # pnpm
 ## API
 
 - `typedWrapperCreator()`- Returns a function for creating wrappers based on provied types.
-- `createWrpaper()`- Creates a wrapper for a function.
+- `createWrapper()`- Creates a wrapper for a function.
 
 # Usage
 

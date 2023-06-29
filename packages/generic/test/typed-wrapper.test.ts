@@ -1,6 +1,6 @@
 import test from "ava";
 
-import { typedWrapperCreator } from "../src";
+import { typedWrapperCreator, nextFuncSymbol } from "../src";
 
 type BinOpWrapperCtx = { foo: string };
 type BinOpWrapperArgs = [number, number, BinOpWrapperCtx];
@@ -9,14 +9,10 @@ const binOpWrapper = typedWrapperCreator<BinOpWrapperArgs>(); // Using never as 
 
 const binOpLogger = binOpWrapper((next, a, b, ctx) => {
   ctx.foo = "bar";
-  console.log(`a:${a}, b:${b}, op:${next._wrappedFunc.name}`);
+  console.log(`a:${a}, b:${b}, op:${next[nextFuncSymbol].name}`);
   const result = next();
 
-  if (Math.random() > 0.5) {
-    return result;
-  }
-
-  return "hi";
+  return result;
 });
 
 const addWithLogging = binOpLogger(function add(a: number, b: number, _ctx) {

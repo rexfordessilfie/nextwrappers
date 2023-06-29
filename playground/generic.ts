@@ -1,16 +1,14 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { createWrapper, typedWrapperCreator } from "@nextwrappers/generic";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 const createServerActionWrapper = typedWrapperCreator<[FormData], void>();
 const createApiRouteWrapper = typedWrapperCreator<
   [NextApiRequest, NextApiResponse],
   void
 >();
-const createRouteHandlerWrapper = typedWrapperCreator<
-  [NextRequest, { params: Record<string, any> }],
-  NextResponse
->();
+const createRouteHandlerWrapper =
+  typedWrapperCreator<[NextRequest, { params: Record<string, any> }]>();
 
 export const apiRouteLogger = createApiRouteWrapper((next, req) => {
   console.log(`[${req.method}] ${req.url}`);

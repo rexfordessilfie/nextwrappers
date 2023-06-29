@@ -4,16 +4,18 @@ type Brand<T, TBrand extends string> = T & {
   [brand]: TBrand;
 };
 
-class _NextReturnType {}
-type NextReturnType = Brand<_NextReturnType, "NextReturnType">;
+type _NextReturnType = {};
+export type NextReturnType = Brand<_NextReturnType, "NextReturnType">;
+
+export const nextFuncSymbol = Symbol("nextFunc");
 
 export const createWrapper = <CArgs extends any[], CReturn>(
   cb: (next: Next, ...args: CArgs) => CReturn
 ) => {
   return <F extends Func<CArgs, any>>(func: F) => {
     return (...args: Parameters<F>) => {
-      const next = () => func(...args);
-      next._wrappedFunc = func;
+      const next = (() => func(...(args as any))) as Next;
+      next[nextFuncSymbol] = func;
       return cb(next as any, ...(args as any)) as CReturn extends NextReturnType
         ? Replace<CReturn, NextReturnType, ReturnType<F>>
         : Exclude<CReturn, NextReturnType>;
@@ -22,14 +24,14 @@ export const createWrapper = <CArgs extends any[], CReturn>(
 };
 
 export const typedWrapperCreator = <
-  XArgs extends any[] = any[],
-  XReturn extends any = any
+  TArgs extends any[] = any[],
+  TReturn extends any = any
 >() => {
-  return <CArgs extends any[], CReturn extends XReturn>(
+  return <CArgs extends any[], CReturn extends TReturn>(
     cb: (
       next: Next,
       ...args: CArgs extends unknown[]
-        ? TupleExtendsInclude<XArgs, CArgs>
+        ? TupleExtendsInclude<TArgs, CArgs>
         : CArgs
     ) => CReturn
   ) => {
@@ -42,8 +44,8 @@ export const typedWrapperCreator = <
       func: F
     ) => {
       return (...args: Parameters<F>) => {
-        const next = () => func(...(args as any));
-        next._wrappedFunc = func;
+        const next = (() => func(...(args as any))) as Next;
+        next[nextFuncSymbol] = func;
         return cb(
           next as any,
           ...(args as any)
@@ -59,7 +61,9 @@ type Func<TArgs extends any[], TReturn extends unknown> = (
   ...args: TArgs
 ) => TReturn;
 
-type Next = (() => NextReturnType) & { _wrappedFunc: Function };
+type Next<T = NextReturnType> = (() => T) & {
+  [nextFuncSymbol]: Function;
+};
 
 type Append<T, U> = U extends any[] ? [...U, T] : [U, T];
 

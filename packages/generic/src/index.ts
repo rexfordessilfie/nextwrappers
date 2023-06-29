@@ -1,24 +1,16 @@
-declare const brand: unique symbol;
-
-type Brand<T, TBrand extends string> = T & {
-  [brand]: TBrand;
-};
-
-type _NextReturnType = {};
-export type NextReturnType = Brand<_NextReturnType, "NextReturnType">;
-
-export const nextFuncSymbol = Symbol("nextFunc");
-
 export const createWrapper = <CArgs extends any[], CReturn>(
   cb: (next: Next, ...args: CArgs) => CReturn
 ) => {
   return <F extends Func<CArgs, any>>(func: F) => {
     return (...args: Parameters<F>) => {
-      const next = (() => func(...(args as any))) as Next;
+      const next = (() => func(...(args as any))) as Parameters<typeof cb>[0];
       next[nextFuncSymbol] = func;
-      return cb(next as any, ...(args as any)) as CReturn extends NextReturnType
-        ? Replace<CReturn, NextReturnType, ReturnType<F>>
-        : Exclude<CReturn, NextReturnType>;
+      return cb(
+        next as any,
+        ...(args as any)
+      ) as CReturn extends BaseNextReturnType
+        ? Replace<CReturn, BaseNextReturnType, ReturnType<F>>
+        : Exclude<CReturn, BaseNextReturnType>;
     };
   };
 };
@@ -44,30 +36,48 @@ export const typedWrapperCreator = <
       func: F
     ) => {
       return (...args: Parameters<F>) => {
-        const next = (() => func(...(args as any))) as Next;
+        const next = (() => func(...(args as any))) as Parameters<typeof cb>[0];
         next[nextFuncSymbol] = func;
         return cb(
           next as any,
           ...(args as any)
-        ) as CReturn extends NextReturnType
-          ? Replace<CReturn, NextReturnType, ReturnType<F>>
-          : Exclude<CReturn, NextReturnType>;
+        ) as CReturn extends BaseNextReturnType
+          ? Replace<CReturn, BaseNextReturnType, ReturnType<F>>
+          : Exclude<CReturn, BaseNextReturnType>;
       };
     };
   };
 };
 
+declare const brand: unique symbol;
+
+type Branded<T, TBrand extends string> = T & {
+  [brand]: TBrand;
+};
+
+type NextReturnTypeBrand = "NextReturnType";
+
+export type BaseNextReturnType = Branded<{}, NextReturnTypeBrand>;
+
+type BrandWithNextReturnType<T> = T extends BaseNextReturnType
+  ? T
+  : Branded<T, NextReturnTypeBrand>;
+
+export const nextFuncSymbol = Symbol("nextFunc");
 type Func<TArgs extends any[], TReturn extends unknown> = (
   ...args: TArgs
 ) => TReturn;
 
-type Next<T = NextReturnType> = (() => T) & {
+type Next<TDefaultReturnType = BaseNextReturnType> = (<
+  TReturnType = TDefaultReturnType
+>() => BrandWithNextReturnType<TReturnType>) & {
   [nextFuncSymbol]: Function;
 };
 
 type Append<T, U> = U extends any[] ? [...U, T] : [U, T];
 
 type Replace<T, U, V> = Exclude<T, U> | V;
+
 /**
  * Given two tuples ATuple and BTuple, take matching extends from BTuple,
  * and 'include' remaining/left over types from ATuple

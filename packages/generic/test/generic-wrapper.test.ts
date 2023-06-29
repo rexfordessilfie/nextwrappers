@@ -2,53 +2,33 @@ import test from "ava";
 
 import { createMocks } from "node-mocks-http";
 
-import { createWrapper } from "../src";
+import { createWrapper, nextFuncSymbol } from "../src";
 
-test("genericWrapper - runs handler", async (t) => {
-  let handlerCallCount = 0;
-
-  const wrapped = createWrapper(async (next, _req: Request) => {
-    return await next();
+test("executes wrapped function", async (t) => {
+  const myLogger = createWrapper((next, req: Request) => {
+    console.log(
+      `starting '${next[nextFuncSymbol].name}', method:${req.method}`
+    );
+    const response = next<Response>();
+    console.log(`finished '${next[nextFuncSymbol].name}'`);
+    response.headers.set("X-IsWrapped", "true");
+    return response;
   });
+
+  let callCount = 0;
 
   const httpMock = createMocks({
     method: "GET",
   });
 
-  const httpMockB = createMocks({
-    method: "GET",
-  });
-
-  const handler = wrapped((_req) => {
-    handlerCallCount += 1;
+  const handler = myLogger(function handler(_req) {
+    callCount += 1;
     return new Response("OK", { status: 200 });
   });
 
-  handler(httpMock.req as any);
-  handler(httpMockB.req as any);
+  const response = handler(httpMock.req as any);
 
-  t.is(typeof wrapped, "function");
-  t.is(handlerCallCount, 2);
-});
-
-test("genericWrapper - attaches properties to request", async (t) => {
-  const wrapped = createWrapper(
-    async (next, req: Request & { foo: string }) => {
-      req.foo = "bar";
-      return await next();
-    }
-  );
-
-  const httpMock = createMocks({
-    method: "GET",
-  });
-
-  const handler = wrapped((req) => {
-    t.is(req.foo, "bar"); // test property added by wrapped
-    return new Response("OK", { status: 200 });
-  });
-
-  handler(httpMock.req as any);
-
-  t.is(typeof wrapped, "function");
+  t.is(typeof myLogger, "function");
+  t.is(await response.text(), "OK");
+  t.is(response.headers.get("X-IsWrapped"), "true");
 });

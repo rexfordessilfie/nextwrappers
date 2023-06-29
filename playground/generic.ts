@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { createWrapper, typedWrapperCreator } from "@nextwrappers/generic";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 const createServerActionWrapper = typedWrapperCreator<[FormData], void>();
 const createApiRouteWrapper = typedWrapperCreator<
@@ -9,7 +9,7 @@ const createApiRouteWrapper = typedWrapperCreator<
 >();
 const createRouteHandlerWrapper = typedWrapperCreator<
   [NextRequest, { params: Record<string, any> }],
-  never
+  NextResponse
 >();
 
 export const apiRouteLogger = createApiRouteWrapper((next, req) => {

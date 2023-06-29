@@ -1,3 +1,12 @@
+declare const brand: unique symbol;
+
+type Brand<T, TBrand extends string> = T & {
+  [brand]: TBrand;
+};
+
+class _NextReturnType {}
+type NextReturnType = Brand<_NextReturnType, "NextReturnType">;
+
 export const createWrapper = <CArgs extends any[], CReturn>(
   cb: (next: Next, ...args: CArgs) => CReturn
 ) => {
@@ -5,14 +14,17 @@ export const createWrapper = <CArgs extends any[], CReturn>(
     return (...args: Parameters<F>) => {
       const next = () => func(...args);
       next._wrappedFunc = func;
-      return cb(next as any, ...(args as any)) as
-        | ReturnType<typeof cb>
-        | ReturnType<F>;
+      return cb(next as any, ...(args as any)) as CReturn extends NextReturnType
+        ? Replace<CReturn, NextReturnType, ReturnType<F>>
+        : Exclude<CReturn, NextReturnType>;
     };
   };
 };
 
-export const typedWrapperCreator = <XArgs extends any[], XReturn>() => {
+export const typedWrapperCreator = <
+  XArgs extends any[] = any[],
+  XReturn extends any = any
+>() => {
   return <CArgs extends any[], CReturn extends XReturn>(
     cb: (
       next: Next,
@@ -32,9 +44,12 @@ export const typedWrapperCreator = <XArgs extends any[], XReturn>() => {
       return (...args: Parameters<F>) => {
         const next = () => func(...(args as any));
         next._wrappedFunc = func;
-        return cb(next as any, ...(args as any)) as
-          | ReturnType<typeof cb>
-          | ReturnType<F>;
+        return cb(
+          next as any,
+          ...(args as any)
+        ) as CReturn extends NextReturnType
+          ? Replace<CReturn, NextReturnType, ReturnType<F>>
+          : Exclude<CReturn, NextReturnType>;
       };
     };
   };
@@ -44,10 +59,11 @@ type Func<TArgs extends any[], TReturn extends unknown> = (
   ...args: TArgs
 ) => TReturn;
 
-type Next = (() => never) & { _wrappedFunc: Function };
+type Next = (() => NextReturnType) & { _wrappedFunc: Function };
 
 type Append<T, U> = U extends any[] ? [...U, T] : [U, T];
 
+type Replace<T, U, V> = Exclude<T, U> | V;
 /**
  * Given two tuples ATuple and BTuple, take matching extends from BTuple,
  * and 'include' remaining/left over types from ATuple

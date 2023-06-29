@@ -26,7 +26,7 @@ test("executes wrapped function", async (t) => {
     return new Response("OK", { status: 200 });
   });
 
-  const response = handler(httpMock.req as any);
+  const response = handler(httpMock.req);
 
   t.is(typeof myLogger, "function");
   t.is(await response.text(), "OK");

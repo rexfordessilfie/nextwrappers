@@ -33,22 +33,26 @@ export const typedWrapperCreator = <
         : CArgs
     ) => CReturn
   ) => {
-    return <
-      F extends Func<
-        Parameters<typeof cb> extends [infer _N, ...infer Args] ? Args : CArgs,
-        any
-      >
-    >(
-      func: F
+    return <FArgs extends any[], FReturn>(
+      func: (
+        ...args: FArgs extends unknown[]
+          ? TupleExtendsInclude<
+              Parameters<typeof cb> extends [infer _N, ...infer Args]
+                ? Args
+                : any[],
+              FArgs
+            >
+          : FArgs
+      ) => FReturn
     ) => {
-      return (...args: Parameters<F>) => {
+      return (...args: Parameters<typeof func>) => {
         const next = (() => func(...(args as any))) as Parameters<typeof cb>[0];
         next[nextFuncSymbol] = func;
         return cb(
           next as any,
           ...(args as any)
         ) as CReturn extends BaseNextReturnType
-          ? Replace<CReturn, BaseNextReturnType, ReturnType<F>>
+          ? Replace<CReturn, BaseNextReturnType, ReturnType<typeof func>>
           : Exclude<CReturn, BaseNextReturnType>;
       };
     };

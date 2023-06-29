@@ -3,7 +3,9 @@ import test from "ava";
 import { typedWrapperCreator, nextFuncSymbol } from "../src";
 
 const createBinOpWrapper =
-  typedWrapperCreator<[number, number, { foo: string }]>();
+  typedWrapperCreator<
+    [number, number, { foo: string } & Record<string, any>]
+  >();
 
 const binOpLogger = createBinOpWrapper((next, a, b, ctx) => {
   ctx.foo = "bar";
@@ -12,7 +14,11 @@ const binOpLogger = createBinOpWrapper((next, a, b, ctx) => {
   return result;
 });
 
-const addWithLogging = binOpLogger(function add(a, b, _ctx) {
+const addWithLogging = binOpLogger(function add(
+  a: number,
+  b: number,
+  _ctx: { foo: string; bar: number }
+) {
   return a + b;
 });
 

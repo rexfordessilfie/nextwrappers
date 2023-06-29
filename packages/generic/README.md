@@ -8,6 +8,8 @@ The goals of the helper functions of this library are to be:
 2. **Transparent**: applying wrappers to functions does not affect the type signature of the function
 3. **Type Safe**: wrappers cannot be applied to functions with mismatching types
 
+> ⚠️ This is not considered fully stable yet for now to the hackery at the type-level, but experimentaiton and feedback is welcome!
+
 ## Installation
 
 In Progress

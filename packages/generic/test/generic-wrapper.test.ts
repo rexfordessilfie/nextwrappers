@@ -21,7 +21,7 @@ test("executes wrapped function", async (t) => {
     method: "GET",
   });
 
-  const handler = myLogger(function handler(_req) {
+  const handler = myLogger(function handler(_req: Request & { test: string }) {
     callCount += 1;
     return new Response("OK", { status: 200 });
   });

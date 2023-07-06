@@ -7,7 +7,12 @@ export const createWrapper = <CArgs extends any[], CReturn>(
   return <FArgs extends any[], FReturn extends any>(
     func: (
       ...args: FArgs extends unknown[]
-        ? TupleExtendsInclude<CArgs, FArgs>
+        ? TupleExtendsSpreadBidirectional<
+            Parameters<typeof cb> extends [infer _, ...infer CArgs]
+              ? CArgs
+              : any[],
+            FArgs
+          >
         : FArgs
     ) => FReturn
   ) => {
@@ -35,21 +40,23 @@ export const typedWrapperCreator = <
     cb: (
       next: Next,
       ...args: CArgs extends unknown[]
-        ? TupleExtendsInclude<TArgs, CArgs>
+        ? TupleExtendsSpreadBase<TArgs, CArgs>
         : CArgs
     ) => CReturn
   ) => {
     return <FArgs extends any[], FReturn>(
       func: (
-        ...args: FArgs extends unknown[]
-          ? TupleExtendsInclude<
-              Parameters<typeof cb> extends [infer _N, ...infer Args]
-                ? Args
-                : any[],
-              FArgs
-            >
-          : FArgs
-      ) => FReturn
+        ...args: // FArgs extends unknown[]
+        // ?
+
+        TupleExtendsSpreadBase<
+          Parameters<typeof cb> extends [infer _N, ...infer Args]
+            ? Args
+            : any[],
+          FArgs
+        >
+      ) => // : FArgs
+      FReturn
     ) => {
       return (...args: Parameters<typeof func>) => {
         const next = (() => func(...(args as any))) as Parameters<typeof cb>[0];
@@ -105,16 +112,26 @@ type Replace<T, U, V> = Exclude<T, U> | V;
  *    [number, { a: string; b: string }]
  *  >; //=> [number, {a: string; b: string}, {c: boolean}]
  * */
-type TupleExtendsInclude<
+type TupleExtendsSpreadBase<
   ATuple extends any[],
   BTuple extends any[],
   SoFar extends any[] = []
 > = BTuple extends [infer B, ...infer BRest]
   ? ATuple extends [infer A, ...infer ARest]
     ? B extends A
-      ? TupleExtendsInclude<ARest, BRest, Append<B, SoFar>> // B extends A so append B to result and recurse
+      ? TupleExtendsSpreadBase<ARest, BRest, Append<B, SoFar>> // B extends A so append B to result and recurse
       : never // B does not extend A so fail
     : never
-  : ATuple extends [infer A, ...infer ARest] // Still some of ATuple left?
-  ? TupleExtendsInclude<ARest, BTuple, Append<A, SoFar>> // Some of ATuple remaining so keep adding from ATuple
-  : SoFar; // ATuple exhausted so return final SoFar type
+  : [...SoFar, ...ATuple]; // BTuple exhausted so return spread base (ATuple)
+
+type TupleExtendsSpreadBidirectional<
+  ATuple extends any[],
+  BTuple extends any[],
+  SoFar extends any[] = []
+> = BTuple extends [infer B, ...infer BRest]
+  ? ATuple extends [infer A, ...infer ARest]
+    ? B extends A
+      ? TupleExtendsSpreadBidirectional<ARest, BRest, Append<B, SoFar>> // B extends A so append B to result and recurse
+      : never // B does not extend A so fail
+    : [...SoFar, ...BTuple] // A exhausted, so spread B
+  : [...SoFar, ...ATuple]; // B exhausted, so spread A

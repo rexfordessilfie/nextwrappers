@@ -1,6 +1,6 @@
 {
   "name": "@nextwrappers/generic",
-  "version": "0.0.1",
+  "version": "0.0.1-rc",
   "main": "dist/index.js",
   "exports": {
     ".": {

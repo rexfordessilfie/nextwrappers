@@ -7,8 +7,7 @@ const createApiRouteWrapper = typedWrapperCreator<
   [NextApiRequest, NextApiResponse],
   void
 >();
-const createRouteHandlerWrapper =
-  typedWrapperCreator<[NextRequest, { params: Record<string, any> }]>();
+const createRouteHandlerWrapper = typedWrapperCreator<[NextRequest, any]>();
 
 export const apiRouteLogger = createApiRouteWrapper((next, req) => {
   console.log(`[${req.method}] ${req.url}`);
@@ -29,19 +28,8 @@ export const serverActionLogger = createServerActionWrapper(
   }
 );
 
-export const addWrapper = createWrapper((next, a: number, b: number) => {
-  console.log(`First arg: ${a}, Second Arg: ${b}`);
-
-  if (Math.random() > 0.5) {
-    return false;
+const handler = routeHandlerLogger(
+  (req, params: { id: string; name: number }) => {
+    return new Response("OK");
   }
-
-  return next();
-});
-
-const addNumbers = addWrapper((a: number, b: number) => {
-  return a + b;
-});
-
-const result = addNumbers(2, 4);
-console.log(result);
+);
